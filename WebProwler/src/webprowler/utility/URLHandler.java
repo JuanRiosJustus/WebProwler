@@ -2,9 +2,8 @@ package webprowler.utility;
 
 public class URLHandler 
 {
-	
 	// TODO check to see if child is the same as parent
-	public static boolean isAssociated(String parentURL, String childURL)
+	public static boolean isParent(String parentURL, String childURL)
 	{
 		if (parentURL.equals(childURL)) return true;
 		
@@ -18,8 +17,6 @@ public class URLHandler
 			}
 			index++;
 		}
-		
-			
 		return true;
 	}
 }
