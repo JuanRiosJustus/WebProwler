@@ -173,8 +173,13 @@ public class Window
 				} else {
 					while (!waitList.isEmpty())
 					{
-						System.out.println("Current site: " + waitList.get(0).getSearchableURL());
-						waitList.add(backend.createAndConnect(waitList.get(0).getSearchableURL()));
+						
+						if (backend.createAndConnect(waitList.get(0).getSearchableURL()) != null) 
+						{
+							System.out.println("Current site: " + waitList.get(0).getSearchableURL());
+							waitList.add(backend.createAndConnect(waitList.get(0).getSearchableURL()));
+							
+						}
 						waitList.remove(0);
 					}
 				}
@@ -198,10 +203,9 @@ public class Window
 		System.out.println("Current waitlist size: " + waitList.size());
 		for (int index = 0; index < waitList.size(); index++) 
 		{
-			//System.out.println("\n WOW" + waitList.get(index).getTitle());
 			queueDisplay.append("\n - " + waitList.get(index).getSearchableURL());
 		}
-		//queueDisplay.setCaretPosition(queueDisplay.getDocument().getLength());
+		queueDisplay.setCaretPosition(queueDisplay.getDocument().getLength());
 		return queueDisplay; 
 	}
 	/**
