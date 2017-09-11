@@ -15,4 +15,5 @@ public class Website
 	public String getNonSearchableURL() { return nonSearchableURL; }
 	/* RETURN THE SEARCHABLE (QUERY) URL */
 	public String getSearchableURL() { return searchableURL; }
+	
 }

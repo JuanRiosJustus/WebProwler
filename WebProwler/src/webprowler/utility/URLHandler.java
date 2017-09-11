@@ -2,21 +2,19 @@ package webprowler.utility;
 
 public class URLHandler 
 {
-	// TODO check to see if child is the same as parent
-	public static boolean isParent(String parentURL, String childURL)
+	// TODO check to see if a given string is related to the current web-site were traversing 
+	public static boolean isRelated(String originalURL)
 	{
-		if (parentURL.equals(childURL)) return true;
+		//TODO is associate with the determine host method
 		
-		// the child is hopfully and ususally larger thant he parent
-		int index = 0;
-		while (index < parentURL.length())
-		{
-			if (parentURL.charAt(index) != childURL.charAt(index))
-			{
-				return false;
-			}
-			index++;
-		}
+		return true;
+	}
+	
+	// TODO base means in determining which sites we traverse to - needs to be added to web-site object
+	public static boolean determineHost(String url)
+	{
+		//TODO determine the raw host name for the web-site i.e. https://www.google.com/  ---> google
+		
 		return true;
 	}
 }

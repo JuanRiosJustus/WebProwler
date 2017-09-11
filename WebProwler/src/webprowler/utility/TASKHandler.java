@@ -11,7 +11,7 @@ public class TASKHandler
 		tasks[2] = "Explore the web for terms";
 		tasks[3] = "Explore the web for answers";
 		
-		queryLimit[0] = "1000000 (results)";
+		queryLimit[0] = "1000000 (resullts)";
 		queryLimit[1] = "100000 (results)";
 		queryLimit[2] = "10000 (results)";
 		queryLimit[3] = "1000 (results)";
