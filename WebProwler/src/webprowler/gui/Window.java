@@ -10,6 +10,8 @@ import java.awt.event.FocusListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -39,23 +41,27 @@ public class Window
 	private JScrollPane scrollableQueueDisplay;
 	private JButton searchButton;
 	
-	//Backend
+	// Backend
 	private Backend backend;
+	
+	// Main structure to store the Childsites
 	private static ArrayList<Childsite> waitList;
 	
-	// Window dimensional settings
+	// Window dimension settings
 	private Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 	private int width = (int) screen.getWidth() * 5 / 11;
 	private int height = (int) screen.getHeight() * 5 / 6;
 	
-	private int linksAggregated;
+	private static int viewport = 0;
+	private static int cleans = 0;
 	
 	public Window(String appName)
 	{
+		initComponents();
 		initGUI(appName);
 	}
 	/**
-	 * INITIALIZE OBJECTS 
+	 * Initialize all the needed objects for the GUI
 	 */
 	private void initComponents()
 	{
@@ -74,17 +80,16 @@ public class Window
 		scrollableQueueDisplay = new JScrollPane(queueDisplay);
 		
 		searchButton = new JButton("Start");
-		backend = new Backend();
+		backend = new Backend(8);
 		waitList = new ArrayList<Childsite>();
 	}
+	
 	/**
-	 * CONSTRUCTION OF THE BASE GUI
-	 * @param appName name of application
+	 * Construct the GUI
+	 * @param appName the name of the application
 	 */
 	private void initGUI(String appName) 
-	{
-		initComponents();
-		
+	{	
 		BufferedImage image = new BufferedImage(5, 5, 5);
 		
 		// window settings
@@ -96,24 +101,30 @@ public class Window
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setVisible(true);
 		
-		// component settings
-		searchButton.addActionListener(new ActionListener() {
+		/* LISTENERS */
+		searchBarDisplay.addFocusListener(new FocusListener() 
+		{
 			@Override
-			public void actionPerformed(ActionEvent arg0) {
-	              prowl();
-	         }
-		});
-		searchBarDisplay.addFocusListener(new FocusListener() {
-			@Override
-			public void focusGained(FocusEvent arg0) {
-				searchBarDisplay.setText("");
+			public void focusGained(FocusEvent arg0) 
+			{ 
+				
+				searchBarDisplay.setText(""); 
 			}
 			@Override
-			public void focusLost(FocusEvent arg0) {
+			public void focusLost(FocusEvent arg0) { }
+		});
+		searchButton.addActionListener(new ActionListener() 
+		{
+			@Override
+			public void actionPerformed(ActionEvent arg0) 
+			{	
+				//limit = TASKHandler.limit();
+				System.out.println(taskLimiter.getSelectedItem() + " is the limit");
+				prowl(); 
 			}
 		});
 		
-		// display limiters and features
+		// Display settings for the displays
 		searchBarDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 		statusDisplay.setLineWrap(true);
 		statusDisplay.setEditable(false);
@@ -122,13 +133,10 @@ public class Window
 		queueDisplay.setEditable(false);
 		queueDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 		mainDisplay.setEditable(false);
-		//scrollableStatusDisplay.
 		scrollableMainDisplay.setPreferredSize(new Dimension(width*27/28, height*5/8));
 		scrollableMainDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
 		
-		//loadMainContent(Entries.getGoogleProducts().get(0).getNonSearchableURL());
-		
-		// add components to pane
+		// Add components to pane
 		pane.add(taskDisplay);
 		pane.add(taskLimiter);
 		pane.add(searchBarDisplay);
@@ -137,16 +145,15 @@ public class Window
 		pane.add(scrollableQueueDisplay);
 		pane.add(scrollableMainDisplay);
 		
-		// add pane to window
+		// Add pane to window
 		window.getContentPane().add(pane);
 		
-		getQueueDisplay();
-		getStatusDisplay();
+		queueDisplay.append("THE QUEUE . . . ");
+		statusDisplay.append("THE STATUS . . . ");
 	}
 	/**
-	 * Load the main content for the main display
-	 * TODO
-	 * @param url - String representing the url to be displayed
+	 * Load the content for/to the main display
+	 * @param url the String representing the URL 
 	 */
 	public void loadMainContent(String url)
 	{
@@ -157,69 +164,71 @@ public class Window
 			mainDisplay.setText("<html> Could not load </html>");
 		}
 	}
+	
 	/**
-	 * MAIN METHOD TRIGGERED BY SEARCH BUTTON
+	 * Main method which starts a new thread triggered by the search button
 	 */
 	public void prowl()
 	{
-		new Thread(new Runnable() 
-		{ 
-			public void run() 
-			{	
-				if (waitList.isEmpty())
+		new Thread(new Runnable() { public void run() 
+		{
+			// While the waitList (our queue) is not empty, add more to our waitList as long as the child isn't null.
+			if (waitList.isEmpty())
+			{
+				// Add the starting point to the waitList
+				 waitList.add(backend.createAndConnect(Entries.getGoogleProducts().get(0).getSearchableURL() + searchBarDisplay.getText()));
+				 
+				while (waitList.isEmpty() == false)	
 				{
-					System.out.println(" - - - - - NEW THREAD CREATED - - - - - ");
-			        waitList.add(backend.createAndConnect(Entries.getGoogleProducts().get(0).getSearchableURL() + searchBarDisplay.getText()));
-				} else {
-					while (!waitList.isEmpty())
-					{
-						
-						if (backend.createAndConnect(waitList.get(0).getSearchableURL()) != null) 
-						{
-							System.out.println("Current site: " + waitList.get(0).getSearchableURL());
-							waitList.add(backend.createAndConnect(waitList.get(0).getSearchableURL()));
-							
-						}
-						waitList.remove(0);
+					waitList.add(backend.createAndConnect(waitList.get(0).getSearchableURL()));
+					waitList.remove(0);
+					
+					if (waitList.size() % 100 == 0) 
+					{ 
+						waitList.removeAll(Collections.singleton(null)); 
+						cleans++;
 					}
+					
 				}
-		    	 //TODO
-				
-		        
-		        //loadMainContent(Entries.getGoogleProducts().get(0).getNonSearchableURL());
-		        //loadMainContent(waitList.get(0).getSearchableURL());
-		     }
-		}).start();
+			}
+		}}).start();
 	}
-	//TODO
 	/**
-	 * Get the main display's queue and add all the changes 
-	 * @return queueDisplay The display for the "waitList" on the main window
+	 * Update the queue display to match the amount of sites in the waitList 
+	 * @return queueDisplay the updated queue display
 	 */
 	public static JTextArea getQueueDisplay() 
 	{
 		queueDisplay.setText("");
 		queueDisplay.append("THE QUEUE . . . ");
-		System.out.println("Current waitlist size: " + waitList.size());
-		for (int index = 0; index < waitList.size(); index++) 
+		for (int index = 0; index < viewport; index++) 
 		{
 			queueDisplay.append("\n - " + waitList.get(index).getSearchableURL());
 		}
+		
+		//queueDisplay.append("\n - " + waitList.get(0).getSearchableURL());
+		//queueDisplay.append("\n - " + waitList.get(index).getSearchableURL());
+		
 		queueDisplay.setCaretPosition(queueDisplay.getDocument().getLength());
 		return queueDisplay; 
 	}
 	/**
-	 * Get the main display's status display and add all the changes
-	 * @return statusDisplay The display for the status of the main window
+	 * Update the status display with all the newly updated variables
+	 * @return statusDisplay the updated status display
 	 */
 	public static JTextArea getStatusDisplay() 
 	{
 		statusDisplay.setText("");
 		statusDisplay.append("THE STATUS . . . ");
-		
-		
+		statusDisplay.append("\n" + "Queue size: " + waitList.size());
+		statusDisplay.append("\n" + "Duplicates: " + Backend.getDuplicates());
+		statusDisplay.append("\n" + "Queue Wipes: " + cleans);
+		statusDisplay.append("\n" + "stat3: " + 0);
+		statusDisplay.append("\n" + "stat4: " + 0);
 		return statusDisplay;
 	}
-	/* GET THE WAITLIST */
+	/* GETTERS FOR BACKEND */
 	public static ArrayList<Childsite> getWaitList() { return waitList; }
+	public static int getViewPort() { return viewport; }
+ 	public static void setViewPortSize() { viewport++; }
 }

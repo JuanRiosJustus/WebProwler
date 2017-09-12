@@ -17,4 +17,16 @@ public class URLHandler
 		
 		return true;
 	}
+	
+	/**
+	 * Need to determine if the current URL is a valid URL for a child
+	 * @param url the URL we're basing our condition off of 
+	 * @return true if and only if the current URL doesn't contain "google", " ", "".
+	 */
+	public static boolean isValid(String url)
+	{
+		if (url.contains(" ") || url.contains("google")) { return false; }
+		
+		return true; 
+	}
 }

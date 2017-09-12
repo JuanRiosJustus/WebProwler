@@ -8,10 +8,10 @@ public class Entries
 	/* WRAPPER CLASS TO INITIALIZE USABLE WEBSITES*/
 	private static List<Website> websites = new ArrayList<Website>();
 	private static List<Parentsite> google = new ArrayList<Parentsite>();
-	
-	// PERHAPS USE A GOOGLE ONLY FORMAT?
+
 	static 
 	{
+		// TODO (3) Determine what to do with the extra links were not using
 		websites.add(new Parentsite("https://www.google.com/", "https://www.google.com/search?q=", "General"));
 		websites.add(new Parentsite("https://www.britannica.com/", "https://www.britannica.com/search?query=", "Terms"));
 		websites.add(new Parentsite("https://www.ask.com/", "http://www.ask.com/web?q=", "Questions"));

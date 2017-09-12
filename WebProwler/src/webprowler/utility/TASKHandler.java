@@ -20,4 +20,6 @@ public class TASKHandler
 	
 	public static String[] getTasks() { return tasks; }
 	public static String[] getLimit() { return queryLimit; }
+	// TODO (7) create a way to determine the amount of searches we should get
+	public static int limit (String size) { return Integer.valueOf((size.replace("[^0-9]", "")));  }
 }
