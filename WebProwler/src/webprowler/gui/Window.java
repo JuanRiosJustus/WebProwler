@@ -190,6 +190,7 @@ public class Window
 					}
 					
 				}
+				System.out.println("Search Stopped");
 			}
 		}}).start();
 	}
@@ -222,8 +223,8 @@ public class Window
 		statusDisplay.append("THE STATUS . . . ");
 		statusDisplay.append("\n" + "Queue size: " + waitList.size());
 		statusDisplay.append("\n" + "Duplicates: " + Backend.getDuplicates());
-		statusDisplay.append("\n" + "Queue Wipes: " + cleans);
-		statusDisplay.append("\n" + "stat3: " + 0);
+		statusDisplay.append("\n" + "Collected: " + Backend.getCollection());
+		statusDisplay.append("\n" + "Queue wipes: " + cleans);
 		statusDisplay.append("\n" + "stat4: " + 0);
 		return statusDisplay;
 	}

@@ -22,12 +22,17 @@ public class Backend
 	private Elements resources;
 	private String description;
 	private String tags;
-	private HashSet<String> set = new HashSet<String>();
+	private HashSet<String> set;
+	
 	private int viewportSize;
+	private static int collection;
 	
 	public Backend(int viewportSize)
 	{
+		set = new HashSet<String>();
+		collection = 0;
 		this.viewportSize = viewportSize;
+		
 	}
 	
 	/* TRACKING VARIABLES */
@@ -53,33 +58,14 @@ public class Backend
 			try { description = document.select("meta[name=description]").get(0).attr("content"); } catch (Exception e) { }
 			
 			// determine the valid links in the current URL
-			for (Element element : links)
-			{ 
-				//TODO (1) Determine a way to get a good descriptor string
-				// Determine if the current url is a valid url for a child
-				if (!set.contains(element.attr("abs:href")) && URLHandler.isValid(element.attr("abs:href")))
-				{
-					children.add(element.attr("abs:href"));
-					set.add(element.attr("abs:href"));
-				}
-				if (set.contains(element.attr("abs:href")))
-				{
-					duplicates++;
-				}
-			}
-			
+			determineChildren(children, links);
 			// Populate the Childsite's attributes
 			develop(site, children, url);
 			// print the contents of the current Childsite
-			//screening(site);
+			screening(site);
+			// Import the sites children to the waitList 
+			importSitesToQueue(site);
 			
-			// Add all of the site's children to the waitList 
-			for (String iteration : site.getChildren())
-			{
-				Window.getWaitList().add(new Childsite(iteration, iteration));
-				
-				if (Window.getViewPort() < viewportSize) { Window.setViewPortSize(); }
-			}
 			//TODO (2) Add things to the the status display
 			Window.getQueueDisplay();
 			Window.getStatusDisplay();
@@ -120,7 +106,48 @@ public class Backend
 		System.out.println("Site: " + site.getNonSearchableURL());
 		System.out.println("Children: " + Arrays.toString(site.getChildren()));
 	}
+	/**
+	 * Imports the children of given site to the waitList
+	 * @param site The site we extract the children from
+	 */
+	private void importSitesToQueue(Childsite site)
+	{
+		// Add all of the site's children to the waitList 
+		for (String iteration : site.getChildren())
+		{
+			Window.getWaitList().add(new Childsite(iteration, iteration));
+			collection++;
+			
+			// update the GUI's queue view
+			if (Window.getViewPort() < viewportSize) { Window.setViewPortSize(); }	
+		}
+	}
+	/**
+	 * We need to determine if we have seen this link before
+	 * @param children The ArrayList we use to add all our unvisited URL's to
+	 * @param links The set of links we look through to set our children (unvisited links)
+	 */
+	private void determineChildren(ArrayList<String> children, Elements links)
+	{
+		// determine the valid links in the current URL
+		for (Element element : links)
+		{
+			// If we have this in the set, increment duplicates
+			if (set.contains(element.attr("abs:href")))
+			{
+				duplicates++;	
+			}
+			//TODO (1) Determine a way to get a good descriptor string
+			// Determine if the current url is a valid url for a child
+			if (!set.contains(element.attr("abs:href")) && URLHandler.isValid(element.attr("abs:href")))
+			{
+				children.add(element.attr("abs:href"));
+				set.add(element.attr("abs:href"));	
+			}	
+		}
+	}
 	
 	// GETTERS FOR THE GUI
 	public static int getDuplicates() { return duplicates; }
+	public static int getCollection() { return collection; }
 }
