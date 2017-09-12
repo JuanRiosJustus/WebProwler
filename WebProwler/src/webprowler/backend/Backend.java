@@ -22,17 +22,20 @@ public class Backend
 	private Elements resources;
 	private String description;
 	private String tags;
-	private HashSet<String> set;
+	private static HashSet<String> set;
 	
 	private int viewportSize;
 	private static int collection;
 	
+	/**
+	 * Constructor to initialize backend
+	 * @param viewportSize the amount of visible links visible in the queueDisplay
+	 */
 	public Backend(int viewportSize)
 	{
 		set = new HashSet<String>();
 		collection = 0;
 		this.viewportSize = viewportSize;
-		
 	}
 	
 	/* TRACKING VARIABLES */
@@ -50,7 +53,7 @@ public class Backend
 		
 		try {
 			
-			document = Jsoup.connect(url.replace(" ", "%20")).get();
+			document = Jsoup.connect(url.replace(" ", "%20")).timeout(0).get();
 			
 			// Get attributes of the current URL
 			try { links = document.select("a[href]"); } catch (Exception e) { }
@@ -60,7 +63,7 @@ public class Backend
 			// determine the valid links in the current URL
 			determineChildren(children, links);
 			// Populate the Childsite's attributes
-			develop(site, children, url);
+			developChildsite(site, children, url);
 			// print the contents of the current Childsite
 			screening(site);
 			// Import the sites children to the waitList 
@@ -69,11 +72,10 @@ public class Backend
 			//TODO (2) Add things to the the status display
 			Window.getQueueDisplay();
 			Window.getStatusDisplay();
-			//System.out.println(" A SITE HAS BEEN POPULATED ");
 			return site;
 		} catch (Exception ex) {
 			//TODO (4) What do we do when the site couldn't be populated
-			//System.out.println(" FATAL ERROR EXCEPTION ");
+			System.out.println("NULL SITE WAS CREATED");
 			ex.printStackTrace();
 			return null;
 		}
@@ -81,10 +83,10 @@ public class Backend
 	/**
 	 * Used to develop all of the attributes of the current site
 	 * @param site The Childsite we need to set attributes to
-	 * @param children The list of URL's to be added to the Childsite's Children
+	 * @param children The ArrayList of unvisited URL's to be added to the Childsite's Children
 	 * @param url The current URL represented by a string used to set the Childsite's site
 	 */
-	private void develop(Childsite site, ArrayList<String> children, String url)
+	private void developChildsite(Childsite site, ArrayList<String> children, String url)
 	{
 		site.setTitle(document.title());
 		site.setDescripton(description);
@@ -150,4 +152,7 @@ public class Backend
 	// GETTERS FOR THE GUI
 	public static int getDuplicates() { return duplicates; }
 	public static int getCollection() { return collection; }
+	public static void resetDuplicates() { duplicates = 0;}
+	public static void resetCollection() { collection = 0; }
+	public static void resetHashSet() { set.clear(); }
 }
