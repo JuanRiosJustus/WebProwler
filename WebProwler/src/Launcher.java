@@ -1,10 +1,11 @@
 
-import webprowler.gui.Window;
+import javafx.application.Application;
+import webrprowler.gui.Window;
 
 public class Launcher 
 {
 	public static void main (String[] args)
 	{
-		Window GUI = new Window("Web Prowler");
+		Application.launch(Window.class, args);
 	}
 }

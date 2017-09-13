@@ -9,10 +9,9 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import webprowler.gui.Window;
+import webrprowler.gui.Window;
+import webprowler.handlers.URLHandler;
 import webprowler.objects.Childsite;
-import webprowler.objects.Entries;
-import webprowler.utility.URLHandler;
 
 public class Backend 
 {
@@ -65,7 +64,7 @@ public class Backend
 			// Populate the Childsite's attributes
 			developChildsite(site, children, url);
 			// print the contents of the current Childsite
-			screening(site);
+			//screening(site);
 			// Import the sites children to the waitList 
 			importSitesToQueue(site);
 			
@@ -117,7 +116,7 @@ public class Backend
 		// Add all of the site's children to the waitList 
 		for (String iteration : site.getChildren())
 		{
-			Window.getWaitList().add(new Childsite(iteration, iteration));
+			Window.getQueue().add(new Childsite(iteration, iteration));
 			collection++;
 			
 			// update the GUI's queue view
@@ -125,7 +124,7 @@ public class Backend
 		}
 	}
 	/**
-	 * We need to determine if we have seen this link before
+	 * We need to determine if we have seen this link before or if it's something we dont want
 	 * @param children The ArrayList we use to add all our unvisited URL's to
 	 * @param links The set of links we look through to set our children (unvisited links)
 	 */
@@ -141,7 +140,7 @@ public class Backend
 			}
 			//TODO (1) Determine a way to get a good descriptor string
 			// Determine if the current url is a valid url for a child
-			if (!set.contains(element.attr("abs:href")) && URLHandler.isValid(element.attr("abs:href")))
+			if (!set.contains(element.attr("abs:href")) && URLHandler.isValid(element.attr("abs:href")) && URLHandler.isLegalChild(element.attr("abs:href")))
 			{
 				children.add(element.attr("abs:href"));
 				set.add(element.attr("abs:href"));	
