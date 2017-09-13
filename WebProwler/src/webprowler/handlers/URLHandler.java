@@ -27,7 +27,7 @@ public class URLHandler
 	{
 		if (url.toLowerCase().endsWith(".pdf") || url.toLowerCase().endsWith(".jpg") || url.toLowerCase().endsWith(".png")
 				|| url.toLowerCase().endsWith(".mov") || url.endsWith("#") || url.toLowerCase().contains("lang=")
-				|| url.toLowerCase().endsWith(".svg") || url.length() > 100 || url.equals("") || url.equals(" "))
+				|| url.toLowerCase().endsWith(".svg") || url.length() > 80 || url.equals("") || url.equals(" "))
 		{
 			return false;
 		}

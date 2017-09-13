@@ -1,6 +1,6 @@
 
 import javafx.application.Application;
-import webrprowler.gui.Window;
+import webprowler.gui.Window;
 
 public class Launcher 
 {

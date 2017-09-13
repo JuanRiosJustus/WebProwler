@@ -9,7 +9,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import webrprowler.gui.Window;
+import webprowler.gui.Window;
 import webprowler.handlers.URLHandler;
 import webprowler.objects.Childsite;
 
@@ -64,7 +64,7 @@ public class Backend
 			// Populate the Childsite's attributes
 			developChildsite(site, children, url);
 			// print the contents of the current Childsite
-			//screening(site);
+			screening(site);
 			// Import the sites children to the waitList 
 			importSitesToQueue(site);
 			

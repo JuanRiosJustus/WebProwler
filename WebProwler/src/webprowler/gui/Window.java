@@ -1,238 +1,248 @@
 package webprowler.gui;
 
-import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
-import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JEditorPane;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
+import javafx.geometry.Insets;
+import javafx.scene.Scene;
+import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.Region;
+import javafx.scene.paint.Color;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import webprowler.backend.Backend;
+import webprowler.handlers.TaskHandler;
 import webprowler.objects.Childsite;
-import webprowler.objects.Entries;
-import webprowler.utility.ProwlTimer;
-import webprowler.utility.TaskHandler;
+import webprowler.utilities.ProwlTimer;
 
-public class Window
+public class Window extends Application
 {
-	// GUI COMPONENTS
-	private JFrame window;
-	private JPanel pane;
-	private JComboBox<String> taskDisplay;
-	private JComboBox<String> taskLimiter;
-	private JTextArea searchBarDisplay;
-	private JTextArea searchTargetDisplay;
-
-	private static JTextArea statusDisplay;
-	private static JTextArea queueDisplay;
-	private JEditorPane mainDisplay;
-	private JScrollPane scrollableMainDisplay;
-	private JScrollPane scrollableStatusDisplay;
-	private JScrollPane scrollableQueueDisplay;
-	private JButton searchButton;
-	
-	// Backend
-	private Backend backend;
-	private static ProwlTimer timer;
-	private Random random;
-	
-	// Main structure to store the Childsites
-	private static ArrayList<Childsite> waitList;
-	
-	// Window dimension settings
-	private Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
-	private int width = (int) screen.getWidth() * 5 / 9;
-	private int height = (int) screen.getHeight() * 5 / 6;
-	
-	private static int viewport = 0;
+	// JavaFX Main Components
+    private FlowPane layout;
+    private Scene scene;
+    private Region newLine;
+    private Backend backend;
+    private Random random;
+    
+    
+    // JavaFX main GUI Components
+    private ComboBox<String> entryPointsDropdown;
+    private ComboBox<String> limitDropdown;
+    private TextField seedBar;
+    private Button startButton;
+    private TextField targetBar;
+    private Button stopButton;
+    private Button settingsButton;
+    private static TextArea statusDisplay;
+    private static TextArea queueDisplay;
+    private static WebView mainDisplay;
+    private static WebEngine engine;
+    private static ProwlTimer timer;
+    
+    // Window dimension settings
+ 	private Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+ 	private int width = (int) screen.getWidth() * 5 / 9;
+ 	private int height = (int) screen.getHeight() * 5 / 6;
+ 	
+ 	private static ArrayList<Childsite> queue;
+ 	
+ 	private static int viewport = 0;
 	private static int cleans = 0;
 	private static int limit;
 	private static int webTimer = 10;
-	private static StringBuilder searchTerm;
-	
-	public Window(String appName)
-	{
-		initComponents();
-		initGUI(appName);
-	}
-	/**
-	 * Initialize all the needed objects for the GUI
-	 */
-	private void initComponents()
-	{
-		pane = new JPanel();
-		
-		taskDisplay = new JComboBox<>(TaskHandler.getTasks());
-		taskLimiter = new JComboBox<>(TaskHandler.getLimit());
-		
-		searchBarDisplay = new JTextArea(height/250, width/75);
-		searchTargetDisplay = new JTextArea(height/250, width/75);
-		statusDisplay = new JTextArea(height/70, width/50);
-		queueDisplay = new JTextArea(height/70, width/15);
-		
-		mainDisplay = new JEditorPane();
-		scrollableMainDisplay = new JScrollPane(mainDisplay);
-		scrollableStatusDisplay = new JScrollPane(statusDisplay);
-		scrollableQueueDisplay = new JScrollPane(queueDisplay);
-		
-		searchButton = new JButton("Start");
-		backend = new Backend(8);
-		timer = new ProwlTimer(0);
-		random = new Random();
-		
-		waitList = new ArrayList<Childsite>();
-		searchTerm = new StringBuilder();
-	}
-	
-	/**
-	 * Construct the GUI
-	 * @param appName the name of the application
-	 */
-	private void initGUI(String appName) 
-	{	
-		BufferedImage image = new BufferedImage(5, 5, 5);
-		
-		// window settings
-		window = new JFrame(appName);
-		window.setResizable(false);
-		window.setSize(width, height);
-		window.setIconImage(image);
-		window.setLocationRelativeTo(null);
-		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		
-		/* LISTENERS */
-		searchBarDisplay.addFocusListener(new FocusListener() 
-		{
-			@Override
-			public void focusGained(FocusEvent arg0) 
-			{ 
-				searchBarDisplay.setText(""); 
+	private static StringBuilder target;
+    
+ 	/* MAIN METHOD */
+ 	
+    public void start(Stage stage)
+    {
+    	ComponentsAndStructuresManager(stage);
+    	AttributeManager(stage);
+    	
+        stage.setScene(scene);
+        stage.show();
+    }
+    /**
+     * Initialize each component to have their attributes set
+     * @param stage
+     */
+    private void ComponentsAndStructuresManager(Stage stage)
+    {
+    	stage.setTitle("Web Prowler");
+    	stage.setResizable(false);
+    	
+    	layout = new FlowPane();
+    	layout.setStyle("-fx-background-color: gray");
+    	newLine = new Region();
+    	newLine.setPrefSize(Double.MAX_VALUE, 0.0);
+    	
+    	// GUI COMPONENTS
+    	entryPointsDropdown = new ComboBox<String>(TaskHandler.getEntryPoints());
+    	entryPointsDropdown.getSelectionModel().selectFirst();
+    	entryPointsDropdown.setStyle("-fx-background-color: darkgray");
+    	limitDropdown = new ComboBox<String>(TaskHandler.getLimits());
+    	limitDropdown.getSelectionModel().selectFirst();
+    	limitDropdown.setStyle("-fx-background-color: darkgray");
+    	seedBar = new TextField("Entery term");
+    	seedBar.setMinSize(width/20, height/75);
+    	seedBar.setStyle("-fx-background-color: lightgray");
+    	startButton = new Button();
+    	startButton.setText("Start");
+    	startButton.setPrefSize(width/15, height/80);
+    	startButton.setStyle("-fx-background-color: darkgray");
+    	targetBar = new TextField("Target term");
+    	targetBar.setMinSize(width/20, height/75);
+    	targetBar.setStyle("-fx-background-color: lightgray");
+    	stopButton = new Button();
+    	stopButton.setText("Stop");
+    	stopButton.setPrefSize(width/15, height/80);
+    	stopButton.setStyle("-fx-background-color: darkgray");
+    	settingsButton = new Button("Settings");
+    	settingsButton.setPrefSize(width/9, height/80);
+    	settingsButton.setStyle("-fx-background-color: darkgray");
+    	
+    	statusDisplay = new TextArea();
+    	statusDisplay.setPrefColumnCount(width/55);
+    	statusDisplay.setPrefRowCount(height/60);
+    	statusDisplay.setStyle("-fx-background-color: gray");
+    	statusDisplay.setEditable(false);
+    	queueDisplay = new TextArea();
+    	queueDisplay.setPrefColumnCount(width/16);
+    	queueDisplay.setPrefRowCount(height/60);
+    	queueDisplay.selectPositionCaret(0);
+    	queueDisplay.setEditable(false);
+    	queueDisplay.setStyle("-fx-background-color: gray");
+    	mainDisplay = new WebView();
+    	mainDisplay.setPrefWidth(width/1.03);
+    	mainDisplay.setPrefHeight(height/1.6);
+    	mainDisplay.setStyle("-fx-background-color: gray");
+    	engine = mainDisplay.getEngine();
+    	timer = new ProwlTimer(0);
+    	scene = new Scene(layout, width, height, Color.RED);
+    	
+    	// DATA STRUCTUES
+    	queue = new ArrayList<Childsite>();
+    	target = new StringBuilder();
+    	
+    	// OTHER OBJECTS
+    	backend = new Backend(8);
+    	random = new Random();
+    	
+    	queueDisplay.appendText("THE QUEUE . . . ");
+		statusDisplay.appendText("THE STATUS . . . ");
+    }
+    /**
+     * Set the attributes for each component
+     * @param stage
+     */
+    private void AttributeManager(Stage stage)
+    {
+    	seedBar.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override public void handle(MouseEvent event) {
+				seedBar.setText("");
 			}
-			@Override
-			public void focusLost(FocusEvent arg0) { }
-		});
-		searchButton.addActionListener(new ActionListener() 
-		{
-			@Override
-			public void actionPerformed(ActionEvent arg0) 
-			{	
-				clearAll();
-				searchTerm.append(searchBarDisplay.getText());
-				System.out.println(taskLimiter.getSelectedItem() + " is the limit");
-				prowl();
-				nextPage();
-				refreshList();
+    	});
+    	startButton.setOnAction(new EventHandler<ActionEvent>() {
+    		@Override public void handle (ActionEvent e) {
+    			System.out.println("Working");
+    			
+    			reset();
+    			prowl();
+    			target.append(seedBar.getText());
+    		}
+    	});
+    	targetBar.setOnMouseClicked(new EventHandler<MouseEvent>() {
+			@Override public void handle(MouseEvent event) {
+				targetBar.setText("");
 			}
-		});
-		
-		// Display settings for the displays
-		searchBarDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		searchTargetDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		statusDisplay.setLineWrap(true);
-		statusDisplay.setEditable(false);
-		statusDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		queueDisplay.setLineWrap(true);
-		queueDisplay.setEditable(false);
-		queueDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		mainDisplay.setEditable(false);
-		scrollableMainDisplay.setPreferredSize(new Dimension(width*27/28, height*5/8));
-		scrollableMainDisplay.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-		
-		// Add components to pane
-		pane.add(taskDisplay);
-		pane.add(taskLimiter);
-		pane.add(searchBarDisplay);
-		pane.add(searchButton);
-		pane.add(searchTargetDisplay);
-		pane.add(scrollableStatusDisplay);
-		pane.add(scrollableQueueDisplay);
-		pane.add(scrollableMainDisplay);
-		
-		// Add pane to window
-		window.getContentPane().add(pane);
-		window.setVisible(true);
-		queueDisplay.append("THE QUEUE . . . ");
-		statusDisplay.append("THE STATUS . . . ");
-	}
-	/**
-	 * Load the content for/to the main display
-	 * @param url the String representing the URL 
-	 */
-	public void loadMainContent(String url)
-	{
-		try {
-			mainDisplay.setPage(url);
-		} catch (IOException ex) {
-			mainDisplay.setContentType("text/html");
-			mainDisplay.setText("<html> Could not load </html>");
-		}
-	}
-	
-	/**
+    	});
+    	stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+    		@Override public void handle(WindowEvent event) {
+    			Platform.exit();
+    			System.exit(0);
+    		}
+    	});
+    	settingsButton.setOnAction(new EventHandler<ActionEvent>() {
+    	    @Override public void handle(ActionEvent e) {
+    	        Stage stage = new Stage();
+    	        //Fill stage with content
+    	        stage.show();
+    	    }
+    	});
+    	
+    	// Layout
+    	layout.setPadding(new Insets(10, 10, 10, 10));
+    	layout.getChildren().add(entryPointsDropdown);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(limitDropdown);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(seedBar);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(startButton);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(targetBar);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(stopButton);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(settingsButton);
+    	layout.setVgap(5.0);
+    	layout.getChildren().add(newLine);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(statusDisplay);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(queueDisplay);
+    	layout.setHgap(5.0);
+    	layout.getChildren().add(mainDisplay);
+    	
+    }
+    /**
 	 * Main method which starts a new thread triggered by the search button
 	 */
 	public void prowl()
 	{
-		limit = TaskHandler.limit(taskLimiter.getSelectedItem());
+		limit = TaskHandler.limit(limitDropdown.getSelectionModel().getSelectedItem());
 		new Thread(new Runnable() { public void run() 
 		{
 			timer.resetTimer(0);
 			// While the waitList (our queue) is not empty, add more to our waitList as long as the child isn't null.
-			if (waitList.isEmpty())
+			if (queue.isEmpty())
 			{
 				// Add the starting point to the waitList
-				 waitList.add(backend.createAndConnect(Entries.getGoogleProducts().get(0).getSearchableURL() + searchBarDisplay.getText()));	 
+				 queue.add(backend.createAndConnect(TaskHandler.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText()));	 
 				 // Main loop to be executed
-				 while (waitList.isEmpty() == false && waitList.size() < limit)	
+				 while (queue.isEmpty() == false && queue.size() < limit)	
 				 {
-					 waitList.add(backend.createAndConnect(waitList.get(0).getSearchableURL()));
-					 waitList.remove(0);
+					 queue.add(backend.createAndConnect(queue.get(0).getSearchableURL()));
+					 queue.remove(0);
 				 }
 				 System.out.println("Search Stopped");
 			}
 		}}).start();
 	}
-	// TO BE DETERMINED
-	public void nextPage()
+    // TODO
+    public void refreshList()
 	{
 		new Thread(new Runnable() { public void run() 
 		{
 			while(true) {
 				try {
-					Thread.sleep(1000 * webTimer);
-					loadMainContent(waitList.get(random.nextInt(waitList.size())).getSearchableURL());
-					queueDisplay.update(queueDisplay.getGraphics());
-					System.out.println("WORDKING");
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			}
-		}}).start();
-	}
-	public void refreshList()
-	{
-		new Thread(new Runnable() { public void run() 
-		{
-			while(true) {
-				try {
-					Thread.sleep(1000 * 60);
-					waitList.removeAll(Collections.singleton(null));
-					waitList.trimToSize();
+					Thread.sleep(1000 * 30);
+					queue.removeAll(Collections.singleton(null));
+					queue.trimToSize();
 					cleans++;
 					System.out.println("waitList had been cleared");
 				} catch (InterruptedException e) {
@@ -241,55 +251,53 @@ public class Window
 			}
 		}}).start();
 	}
-	
-	/**
-	 * Reset all data/timers/objects
+    /**
+	 * Reset all Structures, objects, and data for next crawl
 	 */
-	private static void clearAll()
+	private static void reset()
 	{
-		searchTerm.delete(0, searchTerm.length());
-		waitList.clear();
 		limit = 0;
+		queue.clear();
+		target.delete(0, target.length());
 		Backend.resetCollection();
 		Backend.resetDuplicates();
 		Backend.resetHashSet();
 	}
-	/**
+    /**
 	 * Update the queue display to match the amount of sites in the waitList 
 	 * @return queueDisplay the updated queue display
 	 */
-	public static JTextArea getQueueDisplay() 
+	public static TextArea getQueueDisplay() 
 	{
 		queueDisplay.setText("");
-		queueDisplay.append("THE QUEUE . . . ");
+		queueDisplay.appendText("THE QUEUE . . . ");
 		for (int index = 0; index < viewport; index++) 
 		{
-			queueDisplay.append("\n - " + waitList.get(index).getSearchableURL());
+			final int temp = index;
+			Platform.runLater( () -> queueDisplay.appendText("\n - " + queue.get(temp).getSearchableURL()));
 		}
-		queueDisplay.setCaretPosition(queueDisplay.getDocument().getLength());
 		return queueDisplay; 
 	}
 	/**
 	 * Update the status display with all the newly updated variables
 	 * @return statusDisplay the updated status display
 	 */
-	public static JTextArea getStatusDisplay() 
+	public static TextArea getStatusDisplay() 
 	{
-		/* THE INITIAL QUEUE SIZE WIL ALWAYS BE GREATER SINCE ENTRY SITE */
 		statusDisplay.setText("");
-		statusDisplay.append("THE STATUS . . . ");
-		statusDisplay.append("\n" + "Search term: " + searchTerm.toString());
-		statusDisplay.append("\n" + "Search limit: " + limit);
-		statusDisplay.append("\n" + "Queue size: " + waitList.size());
-		statusDisplay.append("\n" + "Sites collected: " + Backend.getCollection());
-		statusDisplay.append("\n" + "Perents visited: " + Backend.getDuplicates());
-		statusDisplay.append("\n" + "Passed time: " + timer.getTime());
-		statusDisplay.append("\n" + "Queue wipes: " + cleans);
-		statusDisplay.append("\n" + "Reset Timer: " + webTimer);
+		statusDisplay.appendText("THE STATUS . . . ");
+		statusDisplay.appendText("\n" + "Search term: " + target);
+		statusDisplay.appendText("\n" + "Search limit: " + limit);
+		statusDisplay.appendText("\n" + "Queue size: " + queue.size());
+		statusDisplay.appendText("\n" + "Sites collected: " + Backend.getCollection());
+		statusDisplay.appendText("\n" + "Perents visited: " + Backend.getDuplicates());
+		statusDisplay.appendText("\n" + "Passed time: " + timer.getTime());
+		statusDisplay.appendText("\n" + "Queue wipes: " + cleans);
+		statusDisplay.appendText("\n" + "Reset Timer: " + webTimer);
 		return statusDisplay;
 	}
 	/* GETTERS FOR BACKEND */
-	public static ArrayList<Childsite> getWaitList() { return waitList; }
+	public static ArrayList<Childsite> getQueue() { return queue; }
 	public static int getViewPort() { return viewport; }
  	public static void setViewPortSize() { viewport++; }
 }
