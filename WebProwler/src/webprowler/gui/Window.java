@@ -2,12 +2,17 @@ package webprowler.gui;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.lang.management.ManagementFactory;
+import java.lang.management.ThreadInfo;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
+import com.sun.management.ThreadMXBean;
+
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -31,43 +36,45 @@ import webprowler.utilities.ProwlTimer;
 
 public class Window extends Application
 {
-	// JavaFX Main Components
+	/* Necessary Components and objects */
     private FlowPane layout;
     private Scene scene;
     private Region newLine;
     private Backend backend;
     private Random random;
     
-    
-    // JavaFX main GUI Components
+    /* JavaFX GUI Components */
     private ComboBox<String> entryPointsDropdown;
     private ComboBox<String> limitDropdown;
     private TextField seedBar;
     private Button startButton;
     private TextField targetBar;
     private Button stopButton;
-    private Button settingsButton;
+    private Button threadButton;
     private static TextArea statusDisplay;
     private static TextArea queueDisplay;
     private static WebView mainDisplay;
     private static WebEngine engine;
     private static ProwlTimer timer;
     
-    // Window dimension settings
  	private Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
  	private int width = (int) screen.getWidth() * 5 / 9;
  	private int height = (int) screen.getHeight() * 5 / 6;
  	
  	private static ArrayList<Childsite> queue;
  	
+ 	/* Data structures, types, etc */
  	private static int viewport = 0;
-	private static int cleans = 0;
+	private static int visits = 0;
 	private static int limit;
 	private static int webTimer = 10;
-	private static StringBuilder target;
+	private static int threadCount = 0;
+	private static boolean threadIsRunning;
+	private static boolean cleaningThreads;
+	private static StringBuilder entryTerm;
+	private static StringBuilder targetTerm;
     
- 	/* MAIN METHOD */
- 	
+ 	/* Constructive method */
     public void start(Stage stage)
     {
     	ComponentsAndStructuresManager(stage);
@@ -77,8 +84,8 @@ public class Window extends Application
         stage.show();
     }
     /**
-     * Initialize each component to have their attributes set
-     * @param stage
+     * Need to initialize all components and objects for the stage and scene
+     * @param stage the container for all of the JavaFX components 
      */
     private void ComponentsAndStructuresManager(Stage stage)
     {
@@ -95,25 +102,29 @@ public class Window extends Application
     	entryPointsDropdown.getSelectionModel().selectFirst();
     	entryPointsDropdown.setStyle("-fx-background-color: darkgray");
     	limitDropdown = new ComboBox<String>(TaskHandler.getLimits());
-    	limitDropdown.getSelectionModel().selectFirst();
+    	limitDropdown.getSelectionModel().select(3);
     	limitDropdown.setStyle("-fx-background-color: darkgray");
     	seedBar = new TextField("Entery term");
     	seedBar.setMinSize(width/20, height/75);
     	seedBar.setStyle("-fx-background-color: lightgray");
+    	// disable enable seedbar
     	startButton = new Button();
     	startButton.setText("Start");
-    	startButton.setPrefSize(width/15, height/80);
+    	startButton.setPrefSize(width/18, height/80);
     	startButton.setStyle("-fx-background-color: darkgray");
     	targetBar = new TextField("Target term");
     	targetBar.setMinSize(width/20, height/75);
     	targetBar.setStyle("-fx-background-color: lightgray");
+    	//enable disable target bar
     	stopButton = new Button();
     	stopButton.setText("Stop");
     	stopButton.setPrefSize(width/15, height/80);
     	stopButton.setStyle("-fx-background-color: darkgray");
-    	settingsButton = new Button("Settings");
-    	settingsButton.setPrefSize(width/9, height/80);
-    	settingsButton.setStyle("-fx-background-color: darkgray");
+    	stopButton.setDisable(true);
+    	threadButton = new Button("New Thread");
+    	threadButton.setPrefSize(width/9, height/80);
+    	threadButton.setStyle("-fx-background-color: darkgray");
+    	threadButton.setDisable(true);
     	
     	statusDisplay = new TextArea();
     	statusDisplay.setPrefColumnCount(width/55);
@@ -131,14 +142,19 @@ public class Window extends Application
     	mainDisplay.setPrefHeight(height/1.6);
     	mainDisplay.setStyle("-fx-background-color: gray");
     	engine = mainDisplay.getEngine();
+    	//TODO
     	timer = new ProwlTimer(0);
     	scene = new Scene(layout, width, height, Color.RED);
     	
-    	// DATA STRUCTUES
-    	queue = new ArrayList<Childsite>();
-    	target = new StringBuilder();
     	
-    	// OTHER OBJECTS
+    	
+    	queue = new ArrayList<Childsite>();
+    	entryTerm = new StringBuilder();
+    	targetTerm = new StringBuilder();
+    	
+    	threadIsRunning = false;
+    	cleaningThreads = true;
+    	
     	backend = new Backend(8);
     	random = new Random();
     	
@@ -146,8 +162,8 @@ public class Window extends Application
 		statusDisplay.appendText("THE STATUS . . . ");
     }
     /**
-     * Set the attributes for each component
-     * @param stage
+     * Need to set the attributes for each component
+     * @param stage the main components for GUI
      */
     private void AttributeManager(Stage stage)
     {
@@ -158,11 +174,10 @@ public class Window extends Application
     	});
     	startButton.setOnAction(new EventHandler<ActionEvent>() {
     		@Override public void handle (ActionEvent e) {
-    			System.out.println("Working");
-    			
-    			reset();
+    			threadCount++;
     			prowl();
-    			target.append(seedBar.getText());
+    			cleanup();
+    			setGUI();
     		}
     	});
     	targetBar.setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -170,21 +185,29 @@ public class Window extends Application
 				targetBar.setText("");
 			}
     	});
+    	stopButton.setOnAction(new EventHandler<ActionEvent>() {
+    		@Override public void handle (ActionEvent e) {
+    			resetGUI();
+    		}
+    	});
     	stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
     		@Override public void handle(WindowEvent event) {
     			Platform.exit();
     			System.exit(0);
     		}
     	});
-    	settingsButton.setOnAction(new EventHandler<ActionEvent>() {
+    	threadButton.setOnAction(new EventHandler<ActionEvent>() {
     	    @Override public void handle(ActionEvent e) {
-    	        Stage stage = new Stage();
-    	        //Fill stage with content
-    	        stage.show();
+    	    	threadCount++;
+    	    	auxProwl();
+    	    	
+    	        //Stage stage = new Stage();
+    	        //stage.show();
+    	        //TODO
     	    }
     	});
     	
-    	// Layout
+    	/* Layout for the stage */
     	layout.setPadding(new Insets(10, 10, 10, 10));
     	layout.getChildren().add(entryPointsDropdown);
     	layout.setHgap(5.0);
@@ -198,7 +221,7 @@ public class Window extends Application
     	layout.setHgap(5.0);
     	layout.getChildren().add(stopButton);
     	layout.setHgap(5.0);
-    	layout.getChildren().add(settingsButton);
+    	layout.getChildren().add(threadButton);
     	layout.setVgap(5.0);
     	layout.getChildren().add(newLine);
     	layout.setHgap(5.0);
@@ -210,70 +233,134 @@ public class Window extends Application
     	
     }
     /**
-	 * Main method which starts a new thread triggered by the search button
+	 * Creation of the main thread used to determine the state of the GUI components and some data
 	 */
 	public void prowl()
 	{
-		limit = TaskHandler.limit(limitDropdown.getSelectionModel().getSelectedItem());
-		new Thread(new Runnable() { public void run() 
-		{
-			timer.resetTimer(0);
-			// While the waitList (our queue) is not empty, add more to our waitList as long as the child isn't null.
-			if (queue.isEmpty())
-			{
-				// Add the starting point to the waitList
-				 queue.add(backend.createAndConnect(TaskHandler.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText()));	 
-				 // Main loop to be executed
-				 while (queue.isEmpty() == false && queue.size() < limit)	
-				 {
-					 queue.add(backend.createAndConnect(queue.get(0).getSearchableURL()));
-					 queue.remove(0);
-				 }
-				 System.out.println("Search Stopped");
-			}
+		new Thread(new Runnable() { @Override public void run() {
+			System.out.println(" THE MAIN THREAD HAS STARTED");
+				limit = TaskHandler.limit(limitDropdown.getSelectionModel().getSelectedItem());
+				threadIsRunning = true;
+				if (queue.isEmpty())
+				{
+					/* Initialize the queue with the user */
+					 queue.add(backend.createAndConnect(TaskHandler.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText()));
+					 
+					 while (queue.isEmpty() == false && queue.size() < limit && threadIsRunning && startButton.isDisabled())	
+					 {
+						 queue.remove(0);
+						 visits++;
+						 queue.add(backend.createAndConnect(queue.get(0).getSearchableURL()));
+					 }
+					 cleaningThreads = false;
+					 waitForOtherThreads();
+					 reset();
+					 threadCount--;
+					 System.out.println("THE MAIN THREAD HAS STOPPED");
+				}
 		}}).start();
 	}
-    // TODO
-    public void refreshList()
+	/**
+	 * Create a new thread to expedite crawling
+	 */
+	public void auxProwl()
 	{
-		new Thread(new Runnable() { public void run() 
-		{
-			while(true) {
-				try {
-					Thread.sleep(1000 * 30);
-					queue.removeAll(Collections.singleton(null));
-					queue.trimToSize();
-					cleans++;
-					System.out.println("waitList had been cleared");
-				} catch (InterruptedException e) {
-					e.printStackTrace();
+		new Thread(new Runnable() { @Override public void run() {
+			System.out.println("Thread: " + ((Thread.activeCount() + threadCount) - Thread.activeCount()) + " has began.");
+				if (queue.isEmpty() == false)
+				{
+					 while (queue.isEmpty() == false && queue.size() < limit && threadIsRunning && startButton.isDisabled())	
+					 {
+						 queue.remove(0);
+						 visits++;
+						 queue.add(backend.createAndConnect(queue.get(0).getSearchableURL()));
+					 }
+					 System.out.println("Thread: " + ((Thread.activeCount() + threadCount) - Thread.activeCount()) + " has stopped.");
+					 threadCount--;
 				}
-			}
+		}}).start();
+	}
+	public void waitForOtherThreads()
+	{
+		new Thread(new Runnable() {
+			@Override public void run() {
+				// TODO Auto-generated method stub
+				while(threadCount > 0)
+				{
+					try { Thread.sleep(10); } catch (InterruptedException e) { e.printStackTrace(); }
+					System.out.println("Waiting for auxilary threads...");
+				}
+			}}).start();
+	}
+    /**
+     * Clear the queue for a new search session
+     */
+    public void cleanup()
+	{
+    	new Thread(new Runnable() { public void run() 
+		{
+    		queue.clear();
 		}}).start();
 	}
     /**
-	 * Reset all Structures, objects, and data for next crawl
+	 * Need to reset all values for the status on the next crawl
 	 */
-	private static void reset()
+	private void reset()
 	{
-		limit = 0;
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		visits = 0;
+		threadCount = 0;
 		queue.clear();
-		target.delete(0, target.length());
+		timer.resetTimer(0);
+		entryTerm.delete(0, entryTerm.length());
 		Backend.resetCollection();
 		Backend.resetDuplicates();
 		Backend.resetHashSet();
+		resetGUI();
+		
+	}
+	/**
+	 * Need to set the GUI to it's crawling state
+	 */
+	private void setGUI()
+	{
+		startButton.setDisable(true);
+		stopButton.setDisable(false);
+		threadButton.setDisable(false);
+		seedBar.setDisable(true);
+		targetBar.setDisable(true);
+		entryTerm.append(seedBar.getText());
+		targetTerm.append(targetBar.getText());
+	}
+	/**
+	 * Need to set the GUI to it's non-crawling state
+	 */
+	private void resetGUI()
+	{
+		startButton.setDisable(false);
+		stopButton.setDisable(true);
+		threadButton.setDisable(true);
+		threadIsRunning = false;
+		seedBar.setDisable(false);
+		targetBar.setDisable(false);
 	}
     /**
-	 * Update the queue display to match the amount of sites in the waitList 
+	 * Need to update the queue display to match the amount of sites in the queue
 	 * @return queueDisplay the updated queue display
+     * @throws InterruptedException 
 	 */
-	public static TextArea getQueueDisplay() 
+	public static TextArea getQueueDisplay()
 	{
-		queueDisplay.setText("");
-		queueDisplay.appendText("THE QUEUE . . . ");
+		Platform.runLater( () -> queueDisplay.setText(""));
+		Platform.runLater( () -> queueDisplay.appendText("THE QUEUE . . . "));
 		for (int index = 0; index < viewport; index++) 
 		{
-			final int temp = index;
+			int temp = 0 + index;
 			Platform.runLater( () -> queueDisplay.appendText("\n - " + queue.get(temp).getSearchableURL()));
 		}
 		return queueDisplay; 
@@ -284,20 +371,22 @@ public class Window extends Application
 	 */
 	public static TextArea getStatusDisplay() 
 	{
-		statusDisplay.setText("");
-		statusDisplay.appendText("THE STATUS . . . ");
-		statusDisplay.appendText("\n" + "Search term: " + target);
-		statusDisplay.appendText("\n" + "Search limit: " + limit);
-		statusDisplay.appendText("\n" + "Queue size: " + queue.size());
-		statusDisplay.appendText("\n" + "Sites collected: " + Backend.getCollection());
-		statusDisplay.appendText("\n" + "Perents visited: " + Backend.getDuplicates());
-		statusDisplay.appendText("\n" + "Passed time: " + timer.getTime());
-		statusDisplay.appendText("\n" + "Queue wipes: " + cleans);
-		statusDisplay.appendText("\n" + "Reset Timer: " + webTimer);
+		Platform.runLater( () -> statusDisplay.setText(""));
+		Platform.runLater( () -> statusDisplay.appendText("THE STATUS . . . "));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Search term: " + entryTerm));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Search limit: " + limit));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Queue size: " + queue.size()));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Sites collected: " + Backend.getCollection()));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Loops detected : " + Backend.getDuplicates()));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Websites traversed: " + visits));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Crawling threads: " + threadCount));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "All threads: " + Thread.activeCount()));
+		Platform.runLater( () -> statusDisplay.appendText("\n" + "Passed time: " + timer.getTime()));
 		return statusDisplay;
 	}
 	/* GETTERS FOR BACKEND */
 	public static ArrayList<Childsite> getQueue() { return queue; }
 	public static int getViewPort() { return viewport; }
  	public static void setViewPortSize() { viewport++; }
+ 	public static String getTargetTerm () { return targetTerm.toString(); }
 }
