@@ -2,6 +2,19 @@ package webprowler.handlers;
 
 public class URLHandler 
 {
+	private static String[] invalidChildren = new String[7];  
+	static 
+	{
+		// Illegal Childsite extensions and characters
+		invalidChildren[0] = ".pdf";
+		invalidChildren[1] = ".jpg";
+		invalidChildren[2] = ".png";
+		invalidChildren[3] = ".mov";
+		invalidChildren[4] = ".svg";
+		invalidChildren[5] = "lang=";
+		invalidChildren[6] = "#";
+	}
+	
 	// TODO check to see if a given string is related to the current web-site were traversing 
 	public static boolean isRelated(String originalURL)
 	{
@@ -25,12 +38,8 @@ public class URLHandler
 	 */
 	public static boolean isLegalChild(String url)
 	{
-		if (url.toLowerCase().endsWith(".pdf") || url.toLowerCase().endsWith(".jpg") || url.toLowerCase().endsWith(".png")
-				|| url.toLowerCase().endsWith(".mov") || url.endsWith("#") || url.toLowerCase().contains("lang=")
-				|| url.toLowerCase().endsWith(".svg") || url.length() > 80 || url.equals("") || url.equals(" "))
-		{
-			return false;
-		}
+		if (url.length() > 80 || url.equals("") || url.equals(" ") || url.contains("mailto")) { return false; }
+		for (String s : invalidChildren)  { if (url.contains(s)) { return false; } }
 		
 		return true;
 	}
@@ -39,9 +48,10 @@ public class URLHandler
 	 * @param url the URL we're basing our condition off of 
 	 * @return true if and only if the current URL doesn't contain "google", " ", "".
 	 */
-	public static boolean isValid(String url)
+	public static boolean isValidChild(String url)
 	{
-		if (url.contains(" ") || url.contains("google")) { return false; }
+		if (url.length() > 80 || url.equals("") || url.equals(" ") || url.contains("mailto")) { return false; }
+		for (String s : invalidChildren)  { if (url.contains(s)) { return false; } }
 		
 		return true; 
 	}
