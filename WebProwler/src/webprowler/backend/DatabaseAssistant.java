@@ -2,21 +2,18 @@ package webprowler.backend;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Queue;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import webprowler.frontend.MainWindow;
 import webprowler.handlers.SiteHandler;
 import webprowler.objects.Childsite;
 
 public class DatabaseAssistant
 {
 	private static HashSet<String> listOfVisitedChildren = new HashSet<String>();
-	private static HashSet<String> listOfVisitedImages = new HashSet<String>();
 	
 	private static int parentsFound = 0;
 	private static int valuableChildrenFound = 0;
@@ -36,10 +33,10 @@ public class DatabaseAssistant
 			if (listOfVisitedChildren.contains(element.attr("abs:href"))) 
 			{ 
 				parentsFound++;
-			} else if (SiteHandler.isValidChild(element.attr("abs:href"))) {
+			} else if (SiteHandler.isValidChild(element.attr("abs:href")) && !Database.isFoundOnTheBlacklist(element.attr("abs:href"))) {
 				// TODO determine a better way of finding if a Childsite and it's children are related.
 				children.add(element.attr("abs:href"));
-				listOfVisitedChildren.add(element.attr("abs:href"));	
+				listOfVisitedChildren.add(element.attr("abs:href"));
 			}
 		}
 		return children;
@@ -48,9 +45,15 @@ public class DatabaseAssistant
 	 * Determine if we have seen this image before, and negate it.
 	 * @param images The list of images we to populate the children's resources.
 	 * @return The list of unvisited images represented by from the images
+	 * TODO Possible feature to implement into database.
+	 * @throws UnsupportedOperationException
+	 * @code private static HashSet<\String> listOfVisitedImages = new HashSet<\String>();
+	 * @code gallery = DatabaseAssistant.determineValidResources(crawler.getLinks());
 	 */
 	static ArrayList<String> determineValidResources(Elements links)
 	{
+		 throw new UnsupportedOperationException();
+		/* 
 		ArrayList<String> gallery = new ArrayList<String>();
 		
 		for (Element element : links)
@@ -59,16 +62,15 @@ public class DatabaseAssistant
 				gallery.add(element.absUrl("src"));
 				listOfVisitedImages.add(element.absUrl("src"));
 			}
-		}
-		
-		return gallery;
+		} 
+		return gallery; */
 	}
 	/**
 	 * Imports the children of the selected Childsite into the queue.
 	 * @param site The site we extract the children from.
 	 * @param queue The queue we add the children to.
 	 */
-	static void toQueue(Childsite site, Queue<Childsite> queue)
+	static void childrenToQueue(Childsite site, Queue<Childsite> queue)
 	{
 		for (String child : site.getChildren())
 		{
@@ -85,10 +87,8 @@ public class DatabaseAssistant
 	 */
 	static void determineDomain(Childsite child)
 	{
-		URI uri;
-		
 		try {
-			uri = new URI(child.getSite());
+			URI uri = new URI(child.getSite());
 			child.setDomain(uri.getHost());
 		} catch (Exception ex) {
 			child.setDomain("N/A");
@@ -108,7 +108,8 @@ public class DatabaseAssistant
 	 */
 	static void screening(Childsite child)
 	{
-		System.out.println("Current site: " + child.getTitle());
+		//System.out.println("Current site: " + child.getTitle());
+		//System.out.println("Domain: " + child.getDomain());
 		//System.out.println("Keywords: " + child.getKeywords());
 		//System.out.println("Description: " + child.getDescripton());
 		//System.out.println("Text: " + child.getText());
@@ -136,7 +137,6 @@ public class DatabaseAssistant
 		int count = 0;
 
 		while(end != -1){
-			
 			end = text.toLowerCase().indexOf(stringToFind.toLowerCase(), end);
 			if (end != -1)
 			{
