@@ -11,7 +11,6 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.Callback;
@@ -26,7 +25,7 @@ public class CollectionWindow extends Stage
 	
 	private TableColumn<Childsite, String> firstCol;
 	private TableColumn<Childsite, String> secondCol;
-	private TableColumn<Childsite, String> thirdCol;
+	private TableColumn<Childsite, Integer> thirdCol;
 	private TableColumn<Childsite, String> fourthCol;
 	private TableColumn<Childsite, String> fifthCol;
 	private TableColumn<Childsite, String> sixthCol;
@@ -52,20 +51,22 @@ public class CollectionWindow extends Stage
 	{
 		layout = new VBox();
 		
+		firstCol = new TableColumn<Childsite, String>("Domain");
+		firstCol.setMinWidth(width/7);
+		firstCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("domainURL"));
 		
-		
-		firstCol = new TableColumn<>("Domain");
-		firstCol.setMinWidth(width/8);
-		firstCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("domain"));
-		
-		secondCol = new TableColumn<>("URL");
+		secondCol = new TableColumn<Childsite, String>("URL");
 		secondCol.setMinWidth(width/4);
-		secondCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("nonSearchableURL"));
+		secondCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("websiteURL"));
+		
+		thirdCol = new TableColumn<Childsite, Integer>("Score");
+		thirdCol.setMinWidth(width/5);
+		thirdCol.setCellValueFactory(new PropertyValueFactory<Childsite, Integer>("score"));
 		
 		//thirdCol = new TableColumn<>("Usable")
 		
 		table = new TableView<>();
-	    table.getColumns().addAll(firstCol, secondCol);
+	    table.getColumns().addAll(firstCol, secondCol, thirdCol);
 	    table.setPrefHeight(height);
 	    
 	    layout.getChildren().add(table);
@@ -82,7 +83,8 @@ public class CollectionWindow extends Stage
 		ObservableList<Childsite> list = FXCollections.observableArrayList();
 		for (Childsite child : Database.database_for_gui_only())
 		{
-			if (child.getDomain() != null) { list.add(child); }
+			// TODO Put the score into the table // that is non zero numbers
+			list.add(child);
 		}
 		table.setItems(list);
 	}

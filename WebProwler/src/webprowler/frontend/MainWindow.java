@@ -17,6 +17,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
@@ -27,7 +28,7 @@ import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 import webprowler.backend.Database;
-import webprowler.handlers.TaskHandler;
+import webprowler.handlers.MainWindowManager;
 import webprowler.objects.Childsite;
 import webprowler.utilities.ProwlTimer;
 
@@ -38,12 +39,12 @@ public class MainWindow extends Application
     private Scene scene;
     private Region newLine;
     private Random random; // TODO
-    private PolicyWindow policy;
     private CollectionWindow collection;
     
     /* JavaFX GUI Components */
     private ComboBox<String> entryPointsDropdown;
     private ComboBox<String> limitDropdown;
+    private Button traversalButton;
     private TextField seedBar;
     private Button startButton;
     private TextField targetBar;
@@ -51,23 +52,17 @@ public class MainWindow extends Application
     private Button threadButton;
     private Button browserButton;
     private Button collectionButton;
-    private Button policyButton;
     private static TextArea statusDisplay;
     private static TextArea queueDisplay;
     private static WebView mainDisplay;
     private static WebEngine engine;
     private static ProwlTimer timer;
     
-    private static DecimalFormat formatter;
-    
  	private Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
  	private int width = (int) screen.getWidth() * 9 / 13;
  	private int height = (int) screen.getHeight() * 5 / 6;
  	
- 	private static ArrayList<Childsite> queue;
- 	
  	/* Data structures, types, etc */
- 	private static int viewport = 0;
 	private static int limit;
 	private static int threadCount = 0;
 	private static boolean threadIsRunning;
@@ -75,6 +70,10 @@ public class MainWindow extends Application
 	private static StringBuilder entryTerm;
 	private static StringBuilder targetTerm;
 	private static String currentSite = "";
+	private static boolean isBFS = true;
+	
+	private DropShadow shadow = new DropShadow();
+	private static DecimalFormat formatter;
     
  	/* Constructive method */
     public void start(Stage stage)
@@ -100,13 +99,18 @@ public class MainWindow extends Application
     	newLine.setPrefSize(Double.MAX_VALUE, 0.0);
     	
     	// GUI COMPONENTS
-    	entryPointsDropdown = new ComboBox<String>(TaskHandler.getEntryPoints());
+    	entryPointsDropdown = new ComboBox<String>(MainWindowManager.getEntryPoints());
     	entryPointsDropdown.getSelectionModel().selectFirst();
     	entryPointsDropdown.setStyle("-fx-background-color: darkgray");
     	
-    	limitDropdown = new ComboBox<String>(TaskHandler.getLimits());
+    	limitDropdown = new ComboBox<String>(MainWindowManager.getLimits());
     	limitDropdown.getSelectionModel().select(3);
     	limitDropdown.setStyle("-fx-background-color: darkgray");
+    	
+    	traversalButton = new Button();
+    	traversalButton.setText("BFS");
+    	traversalButton.setPrefSize(width/18, height/80);
+    	traversalButton.setStyle("-fx-background-color: darkgray");
     	
     	seedBar = new TextField("Entery term");
     	seedBar.setMinSize(width/20, height/75);
@@ -128,27 +132,21 @@ public class MainWindow extends Application
     	stopButton.setDisable(true);
     	
     	threadButton = new Button("New Thread");
-    	threadButton.setPrefSize(width/10, height/80);
+    	threadButton.setPrefSize(width/11, height/80);
     	threadButton.setStyle("-fx-background-color: darkgray");
     	threadButton.setDisable(true);
     	
     	browserButton = new Button();
     	browserButton.setText("View");
-    	browserButton.setPrefSize(width/20, height/80);
+    	browserButton.setPrefSize(width/18, height/80);
     	browserButton.setStyle("-fx-background-color: darkgray");
     	browserButton.setDisable(true);
     	
     	collectionButton = new Button();
     	collectionButton.setText("Table");
-    	collectionButton.setPrefSize(width/20, height/80);
+    	collectionButton.setPrefSize(width/18, height/80);
     	collectionButton.setStyle("-fx-background-color: darkgray");
     	
-    	policyButton = new Button();
-    	policyButton.setText("Policy");
-    	policyButton.setPrefSize(width/20, height/80);
-    	policyButton.setStyle("-fx-background-color: darkgray");
-    	
-    	policy = new PolicyWindow();
     	collection = new CollectionWindow();
     	
     	statusDisplay = new TextArea();
@@ -165,7 +163,7 @@ public class MainWindow extends Application
     	queueDisplay.setStyle("-fx-background-color: gray");
     	
     	mainDisplay = new WebView();
-    	mainDisplay.setPrefWidth(width/1.03);
+    	mainDisplay.setPrefWidth(width/1.035);
     	mainDisplay.setPrefHeight(height/1.6);
     	mainDisplay.setStyle("-fx-background-color: gray");
     	mainDisplay.isDisabled();
@@ -174,7 +172,6 @@ public class MainWindow extends Application
     	formatter = new DecimalFormat(".##");
     	timer = new ProwlTimer(0);
     	scene = new Scene(layout, width, height);
-    	queue = new ArrayList<Childsite>();
     	random = new Random();
     	
     	entryTerm = new StringBuilder();
@@ -189,11 +186,45 @@ public class MainWindow extends Application
      */
     private void ActionManager(Stage stage)
     {
+    	/* ENTRY POINTS DROPDOWN */
+    	entryPointsDropdown.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                entryPointsDropdown.setEffect(shadow);
+            }
+        });
+    	entryPointsDropdown.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                entryPointsDropdown.setEffect(null);
+            }
+        });
+    	/* LIMIT DROPDOWN */
+    	limitDropdown.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                limitDropdown.setEffect(shadow);
+            }
+        });
+    	limitDropdown.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                limitDropdown.setEffect(null);
+            }
+        });
+    	/* SEED BAR */
     	seedBar.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override public void handle(MouseEvent event) {
 				seedBar.setText("");
 			}
     	});
+    	seedBar.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                seedBar.setEffect(shadow);
+            }
+        });
+    	seedBar.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                seedBar.setEffect(null);
+            }
+        });
+    	/* START BUTTON */
     	startButton.setOnAction(new EventHandler<ActionEvent>() {
     		@Override public void handle (ActionEvent e) {
     			Database.database_clear();
@@ -202,46 +233,168 @@ public class MainWindow extends Application
     			prowl();
     		}
     	});
+    	startButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+              startButton.setEffect(shadow);
+            }
+        });
+    	startButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+              startButton.setEffect(null);
+            }
+        });
+    	/* TARGET BAR */
     	targetBar.setOnMouseClicked(new EventHandler<MouseEvent>() {
 			@Override public void handle(MouseEvent event) {
 				targetBar.setText("");
 			}
     	});
+    	targetBar.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                targetBar.setEffect(shadow);
+            }
+        });
+    	targetBar.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                targetBar.setEffect(null);
+            }
+        });
+    	/* STOP BUTTON */
     	stopButton.setOnAction(new EventHandler<ActionEvent>() {
     		@Override public void handle (ActionEvent e) {
     			terminateThreads();
     		}
     	});
+    	stopButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                stopButton.setEffect(shadow);
+            }
+        });
+    	stopButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                stopButton.setEffect(null);
+            }
+        });
     	stage.setOnCloseRequest(new EventHandler<WindowEvent>() {
     		@Override public void handle(WindowEvent event) {
     			Platform.exit();
     			System.exit(0);
     		}
     	});
+    	/* THREAD BUTTON */
     	threadButton.setOnAction(new EventHandler<ActionEvent>() {
     	    @Override public void handle(ActionEvent e) {
     	    	auxProwl();
     	    }
     	});
+    	threadButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                threadButton.setEffect(shadow);
+            }
+        });
+    	threadButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                threadButton.setEffect(null);
+            }
+        });
+    	/* BROWSER BUTTON */
     	browserButton.setOnAction(new EventHandler<ActionEvent>() {
     		@Override public void handle (ActionEvent e) {
     			webViewer();
 				currentSite = engine.getLocation();
     		}
     	});
+    	browserButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                browserButton.setEffect(shadow);
+            }
+        });
+    	browserButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                browserButton.setEffect(null);
+            }
+        });
+    	/* COLLECTION BUTTON */
     	collectionButton.setOnAction(new EventHandler<ActionEvent>() {
     		@Override public void handle (ActionEvent e) {
     			Database.database_removeExcess();
-    			collection.updateTable();
-    			collection.show();
+    			Platform.runLater( () -> collection.updateTable());
+    			Platform.runLater( () -> collection.show());
     		}
     	});
-    	
+    	collectionButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                collectionButton.setEffect(shadow);
+            }
+        });
+    	collectionButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                collectionButton.setEffect(null);
+            }
+        });
+    	/* TRAVERSAL BUTTON */
+    	traversalButton.setOnAction(new EventHandler<ActionEvent>() {
+    		@Override public void handle (ActionEvent e) {
+    			if (isBFS) 
+    			{ 
+    				isBFS = false;
+    				traversalButton.setText("DFS");
+    			} else { 
+    				isBFS = true; 
+    				traversalButton.setText("BFS");
+    			}
+    		}
+    	});
+    	traversalButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                traversalButton.setEffect(shadow);
+            }
+        });
+    	traversalButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                traversalButton.setEffect(null);
+            }
+        });
+    	/* STATUS DISPLAY */
+    	statusDisplay.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                statusDisplay.setEffect(shadow);
+            }
+        });
+    	statusDisplay.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                statusDisplay.setEffect(null);
+            }
+        });
+    	/* QUEUE DISPLAY */
+    	queueDisplay.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                queueDisplay.setEffect(shadow);
+            }
+        });
+    	queueDisplay.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                queueDisplay.setEffect(null);
+            }
+        });
+    	/* MAIN DISPLAY */
+    	mainDisplay.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                mainDisplay.setEffect(shadow);
+            }
+        });
+    	mainDisplay.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+            @Override public void handle(MouseEvent e) {
+                mainDisplay.setEffect(null);
+            }
+        });
     	/* Layout for the stage */
     	layout.setPadding(new Insets(10, 10, 10, 10));
     	layout.getChildren().add(entryPointsDropdown);
     	layout.setHgap(5.0);
     	layout.getChildren().add(limitDropdown);
+    	layout.setVgap(5.0);
+    	layout.getChildren().add(traversalButton);
     	layout.setHgap(5.0);
     	layout.getChildren().add(seedBar);
     	layout.setHgap(5.0);
@@ -256,8 +409,6 @@ public class MainWindow extends Application
     	layout.getChildren().add(browserButton);
     	layout.setHgap(5.0);
     	layout.getChildren().add(collectionButton);
-    	layout.setVgap(5.0);
-    	layout.getChildren().add(policyButton);
     	layout.setHgap(5.0);
     	layout.getChildren().add(newLine);
     	layout.setHgap(5.0);
@@ -280,18 +431,19 @@ public class MainWindow extends Application
 		new Thread(new Runnable() { @Override public void run() 
 		{
 			System.out.println("THE MAIN THREAD HAS STARTED");
-			limit = TaskHandler.limit(limitDropdown.getSelectionModel().getSelectedItem());
+			limit = MainWindowManager.limit(limitDropdown.getSelectionModel().getSelectedItem());
 			threadIsRunning = true;
 			threadCount++;
 			if (Database.queue_isEmpty())
 			{
 				/* Initialize the queue with the user */
-				Database.queue_enqueue(Database.createAndConnect(TaskHandler.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText()));
+				Database.queue_enqueue(Database.createAndConnect(MainWindowManager.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText()));
 				while (Database.queue_isEmpty() == false && Database.queue_size() <= limit && threadIsRunning && startButton.isDisabled() && !terminateThreads)	
 				{
-					refreshDisplays();
+					refreshDisplays(Database.queue_peek());
+					
 					Database.database_add(Database.queue_dequeue());
-					Database.createAndConnect(Database.queue_dequeue().getSearchableURL());
+					Database.createAndConnect(Database.queue_dequeue().getWebsiteURL());
 					if (Database.queue_size() > limit) { terminateThreads = true; }
 				}
 				browserButton.setDisable(true);
@@ -321,8 +473,8 @@ public class MainWindow extends Application
 				while (Database.queue_isEmpty() == false && Database.queue_size() <= limit && threadIsRunning && startButton.isDisabled() && !terminateThreads)	
 				{
 					Database.database_add(Database.queue_dequeue());
-					refreshDisplays();
-					Database.createAndConnect(Database.queue_dequeue().getSearchableURL());
+					refreshDisplays(Database.queue_peek());
+					Database.createAndConnect(Database.queue_dequeue().getWebsiteURL());
 					if (Database.queue_size() > limit) { terminateThreads = true; }
 				}
 				browserButton.setDisable(true);
@@ -335,10 +487,12 @@ public class MainWindow extends Application
 			System.out.println("Auxiliary thread: " + ((Thread.activeCount() + threadCount) - Thread.activeCount()) + " has stopped.");
 		}}).start();
 	}
-	// TODO
+	/**
+	 * To load the webpage.
+	 */
 	private void webViewer()
 	{
-		engine.load(queue.get(0).getSearchableURL());
+		engine.load(Database.queue_peek().getWebsiteURL());
 	}
 	/**
 	 * Waiting method for the main prowl thread.
@@ -348,7 +502,7 @@ public class MainWindow extends Application
 	{
 		new Thread(new Runnable() { @Override public void run() 
 		{
-			while(threadCount > 0 && queue.size() > 0)
+			while(threadCount > 0 && Database.queue_size() > 0)
 			{
 				try { Thread.sleep(100); } catch (InterruptedException e) { e.printStackTrace(); }
 				
@@ -364,7 +518,7 @@ public class MainWindow extends Application
 	private void reset()
 	{
 		collection.updateTable();
-		queue.clear();
+		Database.queue_clear();
 		terminateThreads = false;
 		threadIsRunning = false;
 		entryTerm.delete(0, entryTerm.length());
@@ -409,9 +563,9 @@ public class MainWindow extends Application
 	/**
 	 * Helper method to update displays.
 	 */
-	public static void refreshDisplays()
+	public static void refreshDisplays(Childsite child)
     {
-    	getQueueDisplay();
+    	getQueueDisplay(child);
 		getStatusDisplay();
     }
     /**
@@ -419,15 +573,9 @@ public class MainWindow extends Application
 	 * TODO
 	 * @return queueDisplay The queueDisplay.
 	 */
-	public static void getQueueDisplay()
+	public static void getQueueDisplay(Childsite child)
 	{
-		Task<Void> task = new Task<Void>() {
-			@Override protected Void call() throws Exception {
-				Platform.runLater( () -> queueDisplay.clear());
-				
-				return null;
-		}};
-		new Thread(task).start();
+		queueDisplay.appendText(child.getWebsiteURL() + "\n");
 	}
 	/**
 	 * Updates the statusDisplay in the GUI.
@@ -436,7 +584,7 @@ public class MainWindow extends Application
 	public static void getStatusDisplay() 
 	{
 		Platform.runLater( () -> statusDisplay.clear());
-		Platform.runLater( () -> statusDisplay.appendText("" + currentSite));
+		Platform.runLater( () -> statusDisplay.appendText("" + "Target Term: " + targetTerm.toString()));
 		Platform.runLater( () -> statusDisplay.appendText("\n" + "Entry term: " + entryTerm));
 		Platform.runLater( () -> statusDisplay.appendText("\n" + "Search limit: " + limit));
 		Platform.runLater( () -> statusDisplay.appendText("\n" + "Hits: " + Database.getHits()));
@@ -449,5 +597,5 @@ public class MainWindow extends Application
 	}
 	/* GETTERS FOR BACKEND */
  	public static String getTargetTerm () { return targetTerm.toString(); }
- 	public static boolean getTerminateThreadStatus() { return terminateThreads; } 
+ 	public static boolean getTerminateThreadStatus() { return terminateThreads; }
 }
