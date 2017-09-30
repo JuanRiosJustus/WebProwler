@@ -33,8 +33,6 @@ public class Crawler
 		try {
 			address = url.replace(" ", "+");
 			document = Jsoup.connect(address)
-					.userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6")
-					.followRedirects(false)
 					.get();
 			
 			try { links = document.select("a[href]"); } catch (Exception e) { }

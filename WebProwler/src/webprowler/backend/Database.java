@@ -1,7 +1,6 @@
 package webprowler.backend;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -27,12 +26,10 @@ public class Database
 	public static Childsite createAndConnect(String url)
 	{
 		try {
-			//Check permissions given to us by the host.
-			PolitenessPolicy.followPolitenessPolicy(url);
-	
-			Thread.sleep(10000);
+			// Slow down search
+			sleepTalk(url, 1);
 			
-			Childsite child  = new Childsite(null, null);
+			Childsite child  = new Childsite("", "");
 			Crawler crawler = new Crawler(url);
 			ArrayList<String> children;
 			
@@ -46,14 +43,15 @@ public class Database
 			DatabaseAssistant.childrenToQueue(child, queue);
 			
 			// Utility function
-			DatabaseAssistant.screening(child);
+			// DatabaseAssistant.screening(child);
+			System.out.println(child.getScore() + " is the score");
 			
 			return child;
 			
 		} catch (Exception ex) {
-			System.out.println("Null site added.");
+			System.out.println("Empty Childsite added.");
 			ex.printStackTrace();
-			return null;
+			return new Childsite("", "");
 		}
 	}
 	/**
@@ -65,20 +63,32 @@ public class Database
 	 */
 	private static void develop(Childsite child, Crawler crawler, ArrayList<String> children)
 	{
-		child.setSite(crawler.getAddress());
+		child.setWebsiteURL(crawler.getAddress());
 		
 		child.setTitle(crawler.getDocumentTitle());
 		child.setDescripton(crawler.getDescription());
 		child.setKeywords(crawler.getTags());
 		child.setText(crawler.getdocumentText());
 		child.setChildren(children.toArray(new String[children.size()]));
-		//child.setResources(gallery.toArray(new String[gallery.size()]));
 		
 		child.unifyAllText();
 		
 		DatabaseAssistant.determineDomain(child);
 		DatabaseAssistant.determineScore(child);
 		DatabaseAssistant.isWantedChild(child);
+	}
+	
+	/**
+	 *  Method to determine the frequency of our crawls and policy
+	 * @param url The string to be added to the policy.
+	 * @param seconds Seconds to wait the before next crawl.
+	 */
+	private static void sleepTalk(String url, int seconds)
+	{
+		try {
+			Thread.sleep(1000 * seconds);
+			PolitenessPolicy.followPolitenessPolicy(url);
+		} catch (InterruptedException e) { e.printStackTrace(); }
 	}
 	
 	/* FOR USE IN THE DATABASEASSISTANT */

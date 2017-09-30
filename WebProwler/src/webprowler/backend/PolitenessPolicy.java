@@ -1,17 +1,13 @@
 package webprowler.backend;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import webprowler.objects.Childsite;
-
 public class PolitenessPolicy 
 {
-	private static ArrayList<String> invalidChildren = new ArrayList<String>();
 	private static HashSet<String> visitedDomains = new HashSet<String>();
 	private static Document document;
 	private static URI uri;
@@ -81,18 +77,6 @@ public class PolitenessPolicy
 		} else {
 			Database.addToBlacklist(domain + extension);
 		}
-	}
-	/**
-	 * Need to determine if the current URL is a valid URL for a child
-	 * @param url the URL we're basing our condition off of 
-	 * @return true if and only if the current URL doesn't contain "google", " ", "".
-	 */
-	public static boolean isValidChild(String url)
-	{
-		if (url.length() > 90 || url.equals("") || url.equals(" ") || url.contains("mailto")) { return false; }
-		for (String s : invalidChildren)  { if (url.contains(s)) { return false; } }
-		
-		return true; 
 	}
 	/**
 	 * Returns the exclusion protocol address.

@@ -2,6 +2,7 @@ package webprowler.backend;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Queue;
 
@@ -42,30 +43,6 @@ public class DatabaseAssistant
 		return children;
 	}
 	/**
-	 * Determine if we have seen this image before, and negate it.
-	 * @param images The list of images we to populate the children's resources.
-	 * @return The list of unvisited images represented by from the images
-	 * TODO Possible feature to implement into database.
-	 * @throws UnsupportedOperationException
-	 * @code private static HashSet<\String> listOfVisitedImages = new HashSet<\String>();
-	 * @code gallery = DatabaseAssistant.determineValidResources(crawler.getLinks());
-	 */
-	static ArrayList<String> determineValidResources(Elements links)
-	{
-		 throw new UnsupportedOperationException();
-		/* 
-		ArrayList<String> gallery = new ArrayList<String>();
-		
-		for (Element element : links)
-		{
-			if (!listOfVisitedImages.contains(element.absUrl("src"))) {
-				gallery.add(element.absUrl("src"));
-				listOfVisitedImages.add(element.absUrl("src"));
-			}
-		} 
-		return gallery; */
-	}
-	/**
 	 * Imports the children of the selected Childsite into the queue.
 	 * @param site The site we extract the children from.
 	 * @param queue The queue we add the children to.
@@ -88,10 +65,10 @@ public class DatabaseAssistant
 	static void determineDomain(Childsite child)
 	{
 		try {
-			URI uri = new URI(child.getSite());
-			child.setDomain(uri.getHost());
+			URI uri = new URI(child.getWebsiteURL());
+			child.setDomainURL(uri.getHost());
 		} catch (Exception ex) {
-			child.setDomain("N/A");
+			child.setDomainURL("N/A");
 		}
 	}
 	/**
@@ -108,13 +85,13 @@ public class DatabaseAssistant
 	 */
 	static void screening(Childsite child)
 	{
-		//System.out.println("Current site: " + child.getTitle());
-		//System.out.println("Domain: " + child.getDomain());
-		//System.out.println("Keywords: " + child.getKeywords());
-		//System.out.println("Description: " + child.getDescripton());
-		//System.out.println("Text: " + child.getText());
-		//System.out.println("Site: " + child.getNonSearchableURL());
-		//System.out.println("Children: " + Arrays.toString(child.getChildren()));
+		System.out.println("Current site: " + child.getTitle());
+		System.out.println("Domain: " + child.getDomainURL());
+		System.out.println("Keywords: " + child.getKeywords());
+		System.out.println("Description: " + child.getDescripton());
+		System.out.println("Text: " + child.getText());
+		System.out.println("Site: " + child.getWebsiteURL());
+		System.out.println("Children: " + Arrays.toString(child.getChildren()));
 	}
 	static boolean isWantedChild(Childsite child)
 	{
