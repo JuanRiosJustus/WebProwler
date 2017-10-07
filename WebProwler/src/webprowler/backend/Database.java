@@ -27,7 +27,7 @@ public class Database
 	{
 		try {
 			// Slow down search
-			sleepTalk(url, 1);
+			sleepTalk(url, 3);
 			
 			Childsite child  = new Childsite("", "");
 			Crawler crawler = new Crawler(url);
@@ -44,7 +44,9 @@ public class Database
 			
 			// Utility function
 			// DatabaseAssistant.screening(child);
-			System.out.println(child.getScore() + " is the score");
+			
+			// Add directly to storage
+			database_add(child);
 			
 			return child;
 			
@@ -76,6 +78,13 @@ public class Database
 		DatabaseAssistant.determineDomain(child);
 		DatabaseAssistant.determineScore(child);
 		DatabaseAssistant.isWantedChild(child);
+		
+		
+		if (child.getScore() > 0) 
+		{
+			child.setLocality(child.getEntirety().substring(child.getEntirety().indexOf(MainWindow.getTargetTerm())));
+			//System.out.println("LOCALITY: "  + child.getLocality() );
+		}
 	}
 	
 	/**
@@ -119,5 +128,5 @@ public class Database
 	public static int database_size() { return database.size(); }
 	public static void database_clear() { database.clear(); }
 	public static void database_removeExcess() { database.removeAll(Collections.singleton(null)); }
-	public static ArrayList<Childsite> database_for_gui_only() { return database; }
+	public static ArrayList<Childsite> database_collection() { return database; }
 }

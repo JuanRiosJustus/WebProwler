@@ -9,7 +9,7 @@ import java.util.Queue;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import webprowler.handlers.SiteHandler;
+import webprowler.managers.SiteManager;
 import webprowler.objects.Childsite;
 
 public class DatabaseAssistant
@@ -34,7 +34,7 @@ public class DatabaseAssistant
 			if (listOfVisitedChildren.contains(element.attr("abs:href"))) 
 			{ 
 				parentsFound++;
-			} else if (SiteHandler.isValidChild(element.attr("abs:href")) && !Database.isFoundOnTheBlacklist(element.attr("abs:href"))) {
+			} else if (SiteManager.isValidChild(element.attr("abs:href")) && !Database.isFoundOnTheBlacklist(element.attr("abs:href"))) {
 				// TODO determine a better way of finding if a Childsite and it's children are related.
 				children.add(element.attr("abs:href"));
 				listOfVisitedChildren.add(element.attr("abs:href"));

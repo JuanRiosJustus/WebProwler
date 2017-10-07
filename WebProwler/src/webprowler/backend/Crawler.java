@@ -19,11 +19,7 @@ public class Crawler
 	 * Constructor for the crawler object.
 	 * @param url The url  represented by a String.
 	 */
-	public Crawler(String url)
-	{
-		crawl(url);
-	}
-	
+	public Crawler(String url) { crawl(url); } 
 	/**
 	 * The operation used to grab all the information of the given url.
 	 * @param url The url used to gather all of the information off of.
@@ -31,9 +27,8 @@ public class Crawler
 	private static void crawl(String url)
 	{
 		try {
-			address = url.replace(" ", "+");
-			document = Jsoup.connect(address)
-					.get();
+			address = url.replace(" ", "%20");
+			document = Jsoup.connect(address)/*.userAgent("Web Prowler)*/.get();
 			
 			try { links = document.select("a[href]"); } catch (Exception e) { }
 			try { images = document.select("img"); } catch (Exception e) { }
