@@ -17,6 +17,7 @@ public class Childsite
 	
 	/* TABLE VARIABLES*/
 	private int score;
+	private String locality;
 	
 	public Childsite(String websiteURL, String domainURL) 
 	{
@@ -51,4 +52,7 @@ public class Childsite
 	
 	public String getEntirety() { return entirety; }
 	public void unifyAllText() { entirety = title + description + keywords + text; }
+	
+	public void setLocality(String locality) { this.locality = locality; }
+	public String getLocality() { return locality; }
 }
