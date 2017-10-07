@@ -6,14 +6,12 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.scene.Scene;
-import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 import webprowler.backend.Database;
 import webprowler.objects.Childsite;
 
@@ -25,14 +23,8 @@ public class CollectionWindow extends Stage
 	
 	private TableColumn<Childsite, String> firstCol;
 	private TableColumn<Childsite, String> secondCol;
-	private TableColumn<Childsite, Integer> thirdCol;
+	private TableColumn<Childsite, String> thirdCol;
 	private TableColumn<Childsite, String> fourthCol;
-	private TableColumn<Childsite, String> fifthCol;
-	private TableColumn<Childsite, String> sixthCol;
-	private TableColumn<Childsite, String> seventhCol;
-	private TableColumn<Childsite, String> eigthCol;
-	
-	private Callback<TableColumn<Object, Object>, TableCell<Object, Object>> site;
 	
 	private Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
  	private int width = (int) screen.getWidth() * 9 / 13;
@@ -46,7 +38,6 @@ public class CollectionWindow extends Stage
 		
 		setScene(scene);
 	}
-	@SuppressWarnings("unchecked")
 	private void initComponents()
 	{
 		layout = new VBox();
@@ -56,17 +47,22 @@ public class CollectionWindow extends Stage
 		firstCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("domainURL"));
 		
 		secondCol = new TableColumn<Childsite, String>("URL");
-		secondCol.setMinWidth(width/4);
+		secondCol.setMinWidth(width/3);
 		secondCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("websiteURL"));
 		
-		thirdCol = new TableColumn<Childsite, Integer>("Score");
-		thirdCol.setMinWidth(width/5);
-		thirdCol.setCellValueFactory(new PropertyValueFactory<Childsite, Integer>("score"));
+		thirdCol = new TableColumn<Childsite, String>("Score");
+		thirdCol.setMinWidth(width/10);
+		thirdCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("score"));
 		
-		//thirdCol = new TableColumn<>("Usable")
+		fourthCol = new TableColumn<Childsite, String>("Locality");
+		fourthCol.setMinWidth(width/2);
+		fourthCol.setCellValueFactory(new PropertyValueFactory<Childsite, String>("locality"));
 		
 		table = new TableView<>();
-	    table.getColumns().addAll(firstCol, secondCol, thirdCol);
+	    table.getColumns().add(firstCol);
+	    table.getColumns().add(secondCol);
+	    table.getColumns().add(thirdCol);
+	    table.getColumns().add(fourthCol);
 	    table.setPrefHeight(height);
 	    
 	    layout.getChildren().add(table);
@@ -81,9 +77,8 @@ public class CollectionWindow extends Stage
 	public void updateTable()
 	{
 		ObservableList<Childsite> list = FXCollections.observableArrayList();
-		for (Childsite child : Database.database_for_gui_only())
+		for (Childsite child : Database.database_collection())
 		{
-			// TODO Put the score into the table // that is non zero numbers
 			list.add(child);
 		}
 		table.setItems(list);

@@ -2,13 +2,11 @@ package webprowler.frontend;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.io.File;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Random;
 
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -18,18 +16,22 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.effect.DropShadow;
-import javafx.scene.input.KeyEvent;
+import javafx.scene.image.Image;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.Region;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
+import javafx.stage.FileChooser;
+import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 import webprowler.backend.Database;
-import webprowler.handlers.MainWindowManager;
+import webprowler.backend.Printer;
+import webprowler.managers.MainWindowManager;
 import webprowler.objects.Childsite;
+import webprowler.utilities.ColorPalette;
 import webprowler.utilities.ProwlTimer;
 
 public class MainWindow extends Application
@@ -38,13 +40,12 @@ public class MainWindow extends Application
     private FlowPane layout;
     private Scene scene;
     private Region newLine;
-    private Random random; // TODO
     private CollectionWindow collection;
     
     /* JavaFX GUI Components */
     private ComboBox<String> entryPointsDropdown;
     private ComboBox<String> limitDropdown;
-    private Button traversalButton;
+    private Button printButton;
     private TextField seedBar;
     private Button startButton;
     private TextField targetBar;
@@ -70,7 +71,6 @@ public class MainWindow extends Application
 	private static StringBuilder entryTerm;
 	private static StringBuilder targetTerm;
 	private static String currentSite = "";
-	private static boolean isBFS = true;
 	
 	private DropShadow shadow = new DropShadow();
 	private static DecimalFormat formatter;
@@ -80,7 +80,6 @@ public class MainWindow extends Application
     {
     	ComponentsAndStructuresManager(stage);
     	ActionManager(stage);
-    	
         stage.setScene(scene);
         stage.show();
     }
@@ -93,66 +92,66 @@ public class MainWindow extends Application
     {
     	stage.setTitle("Web Prowler");
     	stage.setResizable(true);
+    	stage.getIcons().add(new Image(getClass().getResourceAsStream("logo.png")));
     	layout = new FlowPane();
-    	layout.setStyle("-fx-background-color: gray");
+    	layout.setStyle("-fx-background-color: " + ColorPalette.getBackgroundColor());
     	newLine = new Region();
     	newLine.setPrefSize(Double.MAX_VALUE, 0.0);
     	
     	// GUI COMPONENTS
     	entryPointsDropdown = new ComboBox<String>(MainWindowManager.getEntryPoints());
     	entryPointsDropdown.getSelectionModel().selectFirst();
-    	entryPointsDropdown.setStyle("-fx-background-color: darkgray");
+    	entryPointsDropdown.setStyle("-fx-background-color: " + ColorPalette.getComboboxColor());
     	
     	limitDropdown = new ComboBox<String>(MainWindowManager.getLimits());
     	limitDropdown.getSelectionModel().select(3);
-    	limitDropdown.setStyle("-fx-background-color: darkgray");
+    	limitDropdown.setStyle("-fx-background-color: " + ColorPalette.getComboboxColor());
     	
-    	traversalButton = new Button();
-    	traversalButton.setText("BFS");
-    	traversalButton.setPrefSize(width/18, height/80);
-    	traversalButton.setStyle("-fx-background-color: darkgray");
+    	printButton = new Button();
+    	printButton.setText("Print");
+    	printButton.setPrefSize(width/18, height/80);
+    	printButton.setStyle("-fx-background-color: " + ColorPalette.getButtonColor());
     	
     	seedBar = new TextField("Entery term");
     	seedBar.setMinSize(width/20, height/75);
-    	seedBar.setStyle("-fx-background-color: lightgray");
+    	seedBar.setStyle("-fx-background-color: " + ColorPalette.getTextfieldColor());
     	
     	startButton = new Button();
     	startButton.setText("Start");
     	startButton.setPrefSize(width/20, height/80);
-    	startButton.setStyle("-fx-background-color: darkgray");
+    	startButton.setStyle("-fx-background-color: " + ColorPalette.getButtonColor());
     	
     	targetBar = new TextField("Target term");
     	targetBar.setMinSize(width/20, height/75);
-    	targetBar.setStyle("-fx-background-color: lightgray");
+    	targetBar.setStyle("-fx-background-color: " + ColorPalette.getTextfieldColor());
     	
     	stopButton = new Button();
     	stopButton.setText("Stop");
     	stopButton.setPrefSize(width/20, height/80);
-    	stopButton.setStyle("-fx-background-color: darkgray");
+    	stopButton.setStyle("-fx-background-color: " + ColorPalette.getButtonColor());
     	stopButton.setDisable(true);
     	
     	threadButton = new Button("New Thread");
     	threadButton.setPrefSize(width/11, height/80);
-    	threadButton.setStyle("-fx-background-color: darkgray");
+    	threadButton.setStyle("-fx-background-color: " + ColorPalette.getButtonColor());
     	threadButton.setDisable(true);
     	
     	browserButton = new Button();
     	browserButton.setText("View");
     	browserButton.setPrefSize(width/18, height/80);
-    	browserButton.setStyle("-fx-background-color: darkgray");
+    	browserButton.setStyle("-fx-background-color: " + ColorPalette.getButtonColor());
     	browserButton.setDisable(true);
     	
     	collectionButton = new Button();
     	collectionButton.setText("Table");
     	collectionButton.setPrefSize(width/18, height/80);
-    	collectionButton.setStyle("-fx-background-color: darkgray");
+    	collectionButton.setStyle("-fx-background-color: " + ColorPalette.getButtonColor());
     	
     	collection = new CollectionWindow();
     	
     	statusDisplay = new TextArea();
     	statusDisplay.setPrefColumnCount(width/55);
     	statusDisplay.setPrefRowCount(height/60);
-    	statusDisplay.setStyle("-fx-background-color: gray");
     	statusDisplay.setEditable(false);
     	
     	queueDisplay = new TextArea();
@@ -160,19 +159,17 @@ public class MainWindow extends Application
     	queueDisplay.setPrefRowCount(height/60);
     	queueDisplay.selectPositionCaret(0);
     	queueDisplay.setEditable(false);
-    	queueDisplay.setStyle("-fx-background-color: gray");
     	
     	mainDisplay = new WebView();
     	mainDisplay.setPrefWidth(width/1.035);
     	mainDisplay.setPrefHeight(height/1.6);
-    	mainDisplay.setStyle("-fx-background-color: gray");
+    	mainDisplay.setStyle("-fx-background-color: " + ColorPalette.getDisplayColor());
     	mainDisplay.isDisabled();
     	
     	engine = mainDisplay.getEngine();
     	formatter = new DecimalFormat(".##");
     	timer = new ProwlTimer(0);
     	scene = new Scene(layout, width, height);
-    	random = new Random();
     	
     	entryTerm = new StringBuilder();
     	targetTerm = new StringBuilder();
@@ -230,6 +227,9 @@ public class MainWindow extends Application
     			Database.database_clear();
     			reset();
     			setGUI();
+    			if (seedBar.getText().equals("") || seedBar.getText() == null || seedBar.getText().equals("Entery term")) { 
+    				seedBar.setText(targetBar.getText());
+    			}
     			prowl();
     		}
     	});
@@ -333,26 +333,26 @@ public class MainWindow extends Application
             }
         });
     	/* TRAVERSAL BUTTON */
-    	traversalButton.setOnAction(new EventHandler<ActionEvent>() {
+    	printButton.setOnAction(new EventHandler<ActionEvent>() {
     		@Override public void handle (ActionEvent e) {
-    			if (isBFS) 
-    			{ 
-    				isBFS = false;
-    				traversalButton.setText("DFS");
-    			} else { 
-    				isBFS = true; 
-    				traversalButton.setText("BFS");
+    			FileChooser fileChooser = new FileChooser();
+    			ExtensionFilter extFilter = new ExtensionFilter("TEXT files (*.txt)", "*.txt");
+                fileChooser.getExtensionFilters().add(extFilter);
+    			fileChooser.setTitle("Save Pages");
+    			File file = fileChooser.showSaveDialog(stage);
+    			if (file != null) {
+    				Printer.print(file.getAbsolutePath());
     			}
     		}
     	});
-    	traversalButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
+    	printButton.addEventHandler(MouseEvent.MOUSE_ENTERED, new EventHandler<MouseEvent>() {
             @Override public void handle(MouseEvent e) {
-                traversalButton.setEffect(shadow);
+                printButton.setEffect(shadow);
             }
         });
-    	traversalButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
+    	printButton.addEventHandler(MouseEvent.MOUSE_EXITED, new EventHandler<MouseEvent>() {
             @Override public void handle(MouseEvent e) {
-                traversalButton.setEffect(null);
+                printButton.setEffect(null);
             }
         });
     	/* STATUS DISPLAY */
@@ -393,8 +393,6 @@ public class MainWindow extends Application
     	layout.getChildren().add(entryPointsDropdown);
     	layout.setHgap(5.0);
     	layout.getChildren().add(limitDropdown);
-    	layout.setVgap(5.0);
-    	layout.getChildren().add(traversalButton);
     	layout.setHgap(5.0);
     	layout.getChildren().add(seedBar);
     	layout.setHgap(5.0);
@@ -409,6 +407,8 @@ public class MainWindow extends Application
     	layout.getChildren().add(browserButton);
     	layout.setHgap(5.0);
     	layout.getChildren().add(collectionButton);
+    	layout.setVgap(5.0);
+    	layout.getChildren().add(printButton);
     	layout.setHgap(5.0);
     	layout.getChildren().add(newLine);
     	layout.setHgap(5.0);
@@ -438,19 +438,14 @@ public class MainWindow extends Application
 			{
 				/* Initialize the queue with the user */
 				Database.queue_enqueue(Database.createAndConnect(MainWindowManager.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText()));
+				System.out.println("           " + MainWindowManager.determineEntry(entryPointsDropdown.getSelectionModel().getSelectedItem()) + seedBar.getText());
 				while (Database.queue_isEmpty() == false && Database.queue_size() <= limit && threadIsRunning && startButton.isDisabled() && !terminateThreads)	
 				{
 					refreshDisplays(Database.queue_peek());
-					
-					Database.database_add(Database.queue_dequeue());
 					Database.createAndConnect(Database.queue_dequeue().getWebsiteURL());
 					if (Database.queue_size() > limit) { terminateThreads = true; }
 				}
 				browserButton.setDisable(true);
-				while (Database.queue_size() > 0)
-				{
-					Database.database_add(Database.queue_dequeue());
-				}
 			}
 			threadCount--;
 			waitForOtherThreads();
@@ -472,16 +467,11 @@ public class MainWindow extends Application
 			{
 				while (Database.queue_isEmpty() == false && Database.queue_size() <= limit && threadIsRunning && startButton.isDisabled() && !terminateThreads)	
 				{
-					Database.database_add(Database.queue_dequeue());
 					refreshDisplays(Database.queue_peek());
 					Database.createAndConnect(Database.queue_dequeue().getWebsiteURL());
 					if (Database.queue_size() > limit) { terminateThreads = true; }
 				}
 				browserButton.setDisable(true);
-				while (Database.queue_size() > 0)
-				{
-					Database.database_add(Database.queue_dequeue());
-				}
 			}
 			threadCount--;
 			System.out.println("Auxiliary thread: " + ((Thread.activeCount() + threadCount) - Thread.activeCount()) + " has stopped.");
@@ -523,6 +513,7 @@ public class MainWindow extends Application
 		threadIsRunning = false;
 		entryTerm.delete(0, entryTerm.length());
 		targetTerm.delete(0, targetTerm.length());
+		queueDisplay.clear();
 		Database.resetHits();
 		Database.resetLoops();
 		Database.resetBlacklist();;
